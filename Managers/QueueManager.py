@@ -5,7 +5,7 @@ import numpy as np
 
 class RequestQueueManager:
 
-    def __init__(self, num_queues, budget_per_sec=100, budget_per_min=2200):
+    def __init__(self, num_queues, budget_per_sec, budget_per_min):
 
         self.gate = threading.Condition()
         self.queues = [queue.Queue() for _ in range(num_queues)]
@@ -72,7 +72,7 @@ class RequestQueueManager:
             self.gate.notify_all()
     
     def put_randomize(self, msg):
-        id = np.random.randint(1,len(self.queues)+1)
+        id = np.random.randint(0, len(self.queues))
         try:
             self.put(id, msg)
         except:
