@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --bg:#0a0b0d; --panel:#121419; --panel-2:#1a1d24;
+    --line:#2a2e38; --line-soft:#1c1f27;
+    --text:#e8eaed; --dim:#9aa0aa; --dim-2:#5a606b;
+    --amber:#e0a233; --green:#26a69a; --red:#ef5350;
+    --ma:#4f9dde;
+    --ma30d:#c77dff;
+    --mono:'SF Mono','Roboto Mono',Menlo,Consolas,'Courier New',monospace;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--bg); color:var(--text); font-family:var(--mono); font-size:13px; }
+  body{ display:flex; flex-direction:column; }
+  .body-row{ display:flex; flex:1; overflow:hidden; }
+
+  /* Main Layout */
+  .main-chart-col{ flex:2; min-width:0; display:flex; flex-direction:column; border-right:1px solid var(--line-soft); overflow:hidden; }
+  .main-chart-header{ display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--line-soft); flex-shrink:0; }
+  .main-chart-header .mch-sym{ font-weight:700; font-size:15px; letter-spacing:.04em; color:var(--amber); }
+  .main-chart-header .mch-px{ font-size:14px; font-weight:700; }
+  .main-chart-header .mch-chg{ font-size:11.5px; font-weight:700; }
+  .main-chart-header .spacer{ flex:1; }
+  .main-chart-body{ flex:1; display:flex; min-height:0; }
+  .main-chart-stat-rail{ width:120px; flex:0 0 auto; display:flex; flex-direction:column; gap:7px; padding:12px 10px; border-right:1px solid var(--line-soft); overflow-y:auto; }
+  .main-chart-stat-rail .tile{ background:var(--panel-2); border:1px solid var(--line-soft); border-radius:8px; padding:7px 10px; }
+  .main-chart-stat-rail .tile .lbl{ font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim-2); }
+  .main-chart-stat-rail .tile .val{ font-size:13px; font-weight:700; margin-top:2px; }
+  .main-chart-stat-rail .rail-label{ font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim-2); margin:2px 0 -2px; }
+  .main-chartwrap{ flex:1; position:relative; margin:12px 16px 14px; min-width:0; }
+  .main-chartwrap canvas{ display:block; width:100%; height:100%; }
+  .main-chart-empty{ display:flex; flex:1; align-items:center; justify-content:center; color:var(--dim-2); font-size:12px; }
+
+  /* Mid Right (Watchlist) */
+  .mid-right-col{ width:300px; min-width:300px; display:flex; flex-direction:column; border-right:1px solid var(--line-soft); overflow:hidden; }
+  .mid-right-top{ flex:0 0 auto; max-height:45%; min-height:0; display:flex; flex-direction:column; border-bottom:1px solid var(--line-soft); }
+  .mid-right-top-head{ padding:8px 12px 6px; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim-2); border-bottom:1px solid var(--line-soft); flex-shrink:0; display:flex; align-items:center; gap:8px; }
+  .mid-right-top-head .col-last{ width:60px; text-align:right; margin-left:auto; }
+  .mid-right-top-head .col-chg{ width:46px; text-align:right; }
+  .mid-right-watchlist{ flex:1; overflow-y:auto; padding:4px 0; }
+  .mid-right-watchlist::-webkit-scrollbar{ width:4px; }
+  .mid-right-watchlist::-webkit-scrollbar-track{ background:transparent; }
+  .mid-right-watchlist::-webkit-scrollbar-thumb{ background:var(--line); border-radius:2px; }
+  .mid-right-bottom{ flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+  .mid-right-bottom-head{ padding:8px 12px 6px; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim-2); border-bottom:1px solid var(--line-soft); flex-shrink:0; display:flex; align-items:center; gap:8px; }
+  .mid-right-bottom-head .mrbh-sym{ color:var(--amber); font-weight:700; font-size:10px; letter-spacing:.06em; }
+  .mid-right-metrics{ flex:1; overflow-y:auto; padding:10px 10px 8px; display:flex; flex-direction:column; gap:6px; }
+  .mid-right-metrics::-webkit-scrollbar{ width:4px; }
+  .mid-right-metrics::-webkit-scrollbar-track{ background:transparent; }
+  .mid-right-metrics::-webkit-scrollbar-thumb{ background:var(--line); border-radius:2px; }
+  .metric-tile{ background:var(--panel-2); border:1px solid var(--line-soft); border-radius:8px; padding:8px 11px; display:flex; align-items:center; gap:8px; }
+  .metric-tile .mt-lbl{ font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim-2); flex:1; }
+  .metric-tile .mt-val{ font-size:13px; font-weight:700; }
+  .metric-tile .mt-bar-wrap{ width:100%; margin-top:4px; }
+  .metric-tile.full{ flex-direction:column; align-items:stretch; }
+  .metric-bar-track{ height:3px; background:var(--line); border-radius:2px; overflow:hidden; margin-top:4px; }
+  .metric-bar-fill{ height:100%; border-radius:2px; transition:width .4s; }
+  .mid-right-empty{ color:var(--dim-2); font-size:11px; padding:16px 14px; }
+
+  /* Metric overlay checklist (lives in the bottom-middle metrics panel) */
+  .metric-list{ flex:1 1 auto; min-height:0; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:3px; }
+  .metric-list::-webkit-scrollbar{ width:4px; }
+  .metric-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:2px; }
+  .metric-row{ display:flex; align-items:center; gap:7px; padding:3px 5px; border-radius:6px; cursor:pointer; font-size:11px; user-select:none; }
+  .metric-row:hover{ background:var(--panel-2); }
+  /* Custom checkbox -- the global `select,input{appearance:none}` strips the
+     native tick, so we draw our own filled state here. */
+  .metric-row input[type="checkbox"]{ -webkit-appearance:none; appearance:none; width:15px; height:15px; flex:0 0 auto; margin:0; padding:0; background:var(--panel-2); border:1.5px solid var(--line); border-radius:4px; position:relative; cursor:pointer; transition:background .12s, border-color .12s; }
+  .metric-row input[type="checkbox"]:hover{ border-color:var(--amber); }
+  .metric-row input[type="checkbox"]:checked{ background:var(--amber); border-color:var(--amber); }
+  .metric-row input[type="checkbox"]:checked::after{ content:""; position:absolute; left:4px; top:1px; width:4px; height:8px; border:solid #0a0b0d; border-width:0 2px 2px 0; transform:rotate(45deg); }
+  .metric-row .ml-novis{ width:13px; flex:0 0 auto; }
+  .metric-row .ml-swatch{ width:10px; height:3px; border-radius:2px; flex:0 0 auto; }
+  .metric-row .ml-label{ flex:1; color:var(--dim); font-weight:600; }
+  .metric-row .ml-val{ font-weight:700; font-variant-numeric:tabular-nums; color:var(--text); font-size:10.5px; }
+
+  /* Widget Scroll */
+  .widget-col{ width:260px; min-width:260px; display:flex; flex-direction:column; overflow:hidden; }
+  .widget-col-head{ padding:8px 12px 6px; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim-2); border-bottom:1px solid var(--line-soft); flex-shrink:0; }
+  .widget-scroll{ flex:1; overflow-y:auto; padding:8px 8px 8px; display:flex; flex-direction:column; gap:8px; }
+  .widget-scroll::-webkit-scrollbar{ width:4px; }
+  .widget-scroll::-webkit-scrollbar-track{ background:transparent; }
+  .widget-scroll::-webkit-scrollbar-thumb{ background:var(--line); border-radius:2px; }
+  .widget-scroll .panel{ min-height:140px; max-height:140px; flex-shrink:0; }
+  .widget-col-empty{ color:var(--dim-2); font-size:11px; padding:16px 12px; }
+
+  /* Header & Navigation */
+  header{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:14px 22px; border-bottom:1px solid var(--line-soft); background:var(--panel); }
+  .title{ font-size:14px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--amber); }
+  .live-dot{ width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 1.6s infinite; }
+  .live-dot.off{ background:var(--red); box-shadow:0 0 8px var(--red); animation:none; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.3} }
+  select,input{ appearance:none; background:var(--panel-2); border:1px solid var(--line); color:var(--text); font-family:var(--mono); font-size:13px; font-weight:600; padding:8px 12px; border-radius:8px; outline:none; transition:border-color .15s; }
+  select:focus,input:focus{ border-color:var(--amber); }
+  input{ width:178px; text-transform:uppercase; padding-left:30px; }
+  .search-wrap{ position:relative; display:inline-flex; align-items:center; }
+  .search-icon{ position:absolute; left:11px; color:var(--dim-2); pointer-events:none; }
+  .addbar{ display:flex; align-items:center; gap:8px; margin-left:auto; }
+  .slotcount{ font-size:11px; color:var(--dim-2); letter-spacing:.05em; }
+  .slotcount b{ color:var(--text); }
+  .view-tabs{ display:flex; gap:2px; padding:0 22px; background:var(--panel); border-bottom:1px solid var(--line-soft); }
+  .view-tab{ background:none; border:none; color:var(--dim-2); font-family:var(--mono); font-size:11.5px; font-weight:700; letter-spacing:.04em; padding:10px 14px; cursor:pointer; border-bottom:2px solid transparent; transition:.12s; }
+  .view-tab:hover{ color:var(--dim); }
+  .view-tab.active{ color:var(--amber); border-bottom-color:var(--amber); }
+  .panelgrid{ flex:1; display:grid; gap:16px; padding:18px 22px 8px; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); align-content:start; overflow-y:auto; }
+
+  /* ── Clean Stats View ── */
+  .stats-wrapper { padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; max-width: 1200px; margin: 0 auto; width: 100%; overflow-y: auto; }
+  .stats-header { font-size: 16px; color: var(--amber); letter-spacing: .05em; text-transform: uppercase; font-weight: 700; margin: 0; }
+  
+  /* KPI Top Row */
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+  .kpi-card { background: var(--panel); border: 1px solid var(--line-soft); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; }
+  .kpi-card .lbl { font-size: 10px; text-transform: uppercase; color: var(--dim-2); letter-spacing: .05em; margin-bottom: 6px; }
+  .kpi-card .val { font-size: 22px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  
+  /* Main Graph Row */
+  .graph-row { background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; min-height: 300px; }
+  .graph-row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .graph-row-header .title { font-size: 13px; color: var(--text); }
+  .graph-row-header .sub { font-size: 11px; color: var(--dim-2); }
+  .ram-canvas-wrapper { flex: 1; width: 100%; position: relative; }
+  #ramBigChart { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+  /* Hardware & Process Split Row */
+  .split-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .box-card { background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; }
+  .box-title { font-size: 12px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--line-soft); padding-bottom: 10px; margin-bottom: 12px; }
+  
+  /* Hardware List */
+  .hw-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+  .hw-item:last-child { border-bottom: none; }
+  .hw-item .hw-lbl { color: var(--dim); }
+  .hw-item .hw-val { font-weight: 700; }
+  
+  /* Process Dropdown Tree */
+  .proc-tree { flex: 1; overflow-y: auto; padding-right: 8px; }
+  .proc-tree::-webkit-scrollbar { width: 4px; }
+  .proc-tree::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+  .proc-item { background: var(--panel-2); border: 1px solid var(--line-soft); border-radius: 8px; margin-bottom: 8px; }
+  .proc-item summary { cursor: pointer; padding: 10px 12px; font-weight: 600; color: var(--amber); outline: none; display: flex; justify-content: space-between; align-items: center; }
+  .proc-item summary:hover { background: #161510; }
+  .proc-item ul { margin: 0; padding: 10px 12px 10px 30px; list-style-type: none; border-top: 1px solid var(--line-soft); }
+  .proc-item li { color: var(--dim); padding: 4px 0; display: flex; justify-content: space-between; border-bottom: 1px dashed var(--line-soft); }
+  .proc-item li:last-child { border-bottom: none; }
+  .empty-procs { color: var(--dim-2); font-style: italic; padding: 10px 0; }
+
+  /* Sidebar */
+  .sym-sidebar{ width:188px; min-width:188px; background:var(--panel); border-right:1px solid var(--line-soft); display:flex; flex-direction:column; overflow:hidden; }
+  .sym-sidebar-head{ display:flex; align-items:center; gap:8px; padding:9px 12px 7px; border-bottom:1px solid var(--line-soft); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim-2); }
+  .sym-sidebar-head .col-name{ flex:1; }
+  .sym-sidebar-head .col-last{ width:52px; text-align:right; }
+  .sym-sidebar-head .col-chg{ width:46px; text-align:right; }
+  .sym-sidebar-list{ flex:1; overflow-y:auto; padding:6px 0; }
+  .sym-sidebar-list::-webkit-scrollbar{ width:4px; }
+  .sym-sidebar-list::-webkit-scrollbar-track{ background:transparent; }
+  .sym-sidebar-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:2px; }
+  .sym-row{ display:flex; align-items:center; gap:8px; padding:6px 12px; cursor:pointer; border-left:2px solid transparent; transition:background .12s, border-color .12s; user-select:none; }
+  .sym-row:hover{ background:var(--panel-2); border-left-color:var(--dim-2); }
+  .sym-row.active{ border-left-color:var(--amber); background:#161510; }
+  .sym-row.active .sr-name{ color:var(--amber); }
+  .sym-row.maximized{ border-left-color:var(--ma); background:#11161f; }
+  .sym-row.maximized .sr-name{ color:var(--ma); }
+  .sym-row .sr-name{ font-weight:700; font-size:11.5px; letter-spacing:.04em; flex:1; }
+  .sym-row .sr-last{ width:52px; text-align:right; font-size:10.5px; color:var(--dim); font-weight:600; }
+  .sym-row .sr-chg{ width:46px; text-align:right; font-size:10px; font-weight:700; }
+  .sym-sidebar-empty{ padding:18px 12px; font-size:11px; color:var(--dim-2); line-height:1.5; }
+
+  /* Panels */
+  .panel{ background:var(--panel); border:1px solid var(--line-soft); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; min-height:200px; }
+  .panel .phead{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line-soft); }
+  .panel .sym{ font-weight:700; font-size:12.5px; letter-spacing:.04em; }
+  .panel .px{ font-size:13px; font-weight:700; }
+  .panel .chg{ font-size:11px; font-weight:700; }
+  .panel .up{ color:var(--green); } .panel .down{ color:var(--red); }
+  .panel .spacer{ flex:1; }
+  .panel .closebtn{ background:none; border:none; color:var(--dim-2); font-size:16px; line-height:1; cursor:pointer; padding:2px 4px; }
+  .panel .closebtn:hover{ color:var(--red); }
+  .panel .pcanvas-wrap{ flex:1; position:relative; min-height:150px; }
+  .panel canvas{ display:block; width:100%; height:100%; }
+  .panel .pstatus{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--dim-2); font-size:11px; }
+  .panel .ptooltip{ position:absolute; pointer-events:none; background:rgba(10,11,13,.95); border:1px solid var(--line); border-radius:7px; padding:6px 8px; font-size:10.5px; line-height:1.55; color:var(--dim); display:none; white-space:nowrap; z-index:5; }
+  .panel .ptooltip b{ color:var(--text); font-weight:700; }
+  .empty-hint{ grid-column:1/-1; color:var(--dim-2); font-size:12px; padding:40px 0; text-align:center; }
+  .up{ color:var(--green); } .down{ color:var(--red); }
+
+  /* Center Modals */
+  .ranges{ display:flex; gap:6px; }
+  .ranges button{ background:var(--panel-2); border:1px solid var(--line); color:var(--dim); font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.05em; padding:7px 11px; border-radius:7px; cursor:pointer; transition:.15s; }
+  .ranges button:hover{ border-color:var(--dim-2); color:var(--text); }
+  .ranges button.active{ border-color:var(--amber); color:var(--amber); background:#1d1a12; }
+  .dtooltip{ position:absolute; pointer-events:none; background:rgba(10,11,13,.95); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:11px; line-height:1.6; color:var(--dim); display:none; white-space:nowrap; z-index:5; }
+  .dtooltip b{ color:var(--text); font-weight:700; }
+  .dstatus{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--dim-2); font-size:12px; pointer-events:none; }
+  .hist-progress{ position:absolute; top:0; left:0; height:2px; background:var(--amber); border-radius:1px; transition:width .25s linear; pointer-events:none; z-index:6; }
+
+  /* Footer */
+  footer{ display:flex; gap:18px; flex-wrap:wrap; align-items:center; padding:9px 22px; border-top:1px solid var(--line-soft); background:var(--panel); font-size:11px; color:var(--dim-2); }
+  footer b{ color:var(--dim); }
+  footer .sep{ width:1px; height:12px; background:var(--line); }
+  footer .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  footer .dot-in{ background:var(--green); } footer .dot-out{ background:var(--amber); }
+  .spark-wrap{ display:inline-flex; align-items:center; cursor:help; }
+  .spark-wrap canvas{ width:140px; height:22px; display:block; }
+  
+  .watch-row{ display:flex; align-items:center; gap:9px; padding:6px 10px; border-radius:7px; cursor:pointer; border:1px solid transparent; transition:background .12s, border-color .12s; user-select:none; }
+  .watch-row:hover{ background:var(--panel-2); }
+  .watch-row.active{ background:#11161f; border-color:var(--ma); }
+  .watch-row .wr-name{ font-weight:700; font-size:11.5px; letter-spacing:.03em; flex:1; }
+  .watch-row .wr-last{ font-size:11px; color:var(--dim); font-weight:600; min-width:64px; text-align:right; }
+  .watch-row .wr-chg{ font-size:10.5px; font-weight:700; min-width:46px; text-align:right; }
+  .watch-list-empty{ color:var(--dim-2); font-size:11px; padding:8px 4px; }
+  
+  @keyframes flash-up { 0% { background-color: rgba(38,166,154,0.7); } 100% { background-color: transparent; } }
+  @keyframes flash-down { 0% { background-color: rgba(239,83,80,0.7); } 100% { background-color: transparent; } }
+  .watch-row.flash-up { animation: flash-up 0.6s ease-out; }
+  .watch-row.flash-down { animation: flash-down 0.6s ease-out; }
+  
+  .pulse-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 1.5s infinite; }
+  .pulse-out { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+</style>
+</head>
+<body>
+  <header>
+    <span class="live-dot off" id="connDot"></span>
+    <span class="title">Futures Ticks</span>
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 16 16" width="13" height="13"><circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><line x1="10.2" y1="10.2" x2="14" y2="14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <input id="addInput" list="symList" placeholder="add symbol, enter…" autocomplete="off" />
+    </div>
+    <datalist id="symList"></datalist>
+    <div class="addbar">
+      <span class="slotcount"><b id="slotUsed">0</b>/<span id="slotMax">12</span> symbols</span>
+    </div>
+  </header>
+
+  <div class="view-tabs">
+    <button class="view-tab active" id="tabFocus" data-view="focus">Focus</button>
+    <button class="view-tab" id="tabGrid" data-view="grid">Grid — all 12 expanded</button>
+    <button class="view-tab" id="tabStats" data-view="stats">Stats</button>
+  </div>
+
+  <div class="body-row">
+    <aside class="sym-sidebar">
+      <div class="sym-sidebar-head"><span class="col-name">All Symbols</span><span class="col-last">Last</span><span class="col-chg">Chg%</span></div>
+      <div class="sym-sidebar-list" id="symSidebar"><div class="sym-sidebar-empty" id="sidebarEmpty">loading…</div></div>
+    </aside>
+
+    <div id="focusView" style="display:flex;flex:1;min-width:0;overflow:hidden;">
+      <div class="main-chart-col" id="mainChartCol">
+        <div class="main-chart-header">
+          <span class="mch-sym" id="mainSym">–</span><span class="mch-px" id="mainPx">–</span><span class="mch-chg" id="mainChg"></span><span class="spacer"></span>
+          <div class="ranges" id="mainRanges">
+            <button data-window="2m">2M</button><button data-window="10m" class="active">10M</button><button data-window="30m">30M</button><button data-window="1h">1H</button>
+          </div>
+        </div>
+        <div class="main-chart-body" id="mainChartBody">
+          <div class="main-chart-stat-rail" id="mainStatRail"></div>
+          <div class="main-chartwrap" id="mainChartwrap"><canvas id="detailCanvas"></canvas><div id="detailProgress" class="hist-progress" style="width:0"></div><div id="detailStatus" class="dstatus"></div><div id="detailTooltip" class="dtooltip"></div></div>
+        </div>
+        <div class="main-chart-empty" id="mainChartEmpty">add a symbol to begin</div>
+      </div>
+
+      <div class="mid-right-col">
+        <div class="mid-right-top">
+          <div class="mid-right-top-head"><span>Watchlist</span><span class="col-last">Last</span><span class="col-chg">Chg%</span></div>
+          <div class="mid-right-watchlist" id="watchList"><div class="watch-list-empty" id="watchListEmpty">add symbols to build your watchlist</div></div>
+        </div>
+        <div class="mid-right-bottom">
+          <div class="mid-right-bottom-head"><span>Metrics</span><span class="spacer" style="flex:1"></span><span class="mrbh-sym" id="metricsSymLabel">–</span></div>
+          <div class="metric-list" id="metricList"></div>
+        </div>
+      </div>
+
+      <div class="widget-col">
+        <div class="widget-col-head">Live Charts</div>
+        <div class="widget-scroll" id="widgetScroll"><div class="widget-col-empty" id="widgetEmpty">add symbols to see live charts</div></div>
+      </div>
+    </div>
+
+    <div class="panelgrid" id="grid" style="display:none;">
+      <div class="empty-hint" id="emptyHint">add up to 12 symbols above to start watching them live</div>
+    </div>
+    
+    <div id="statsView" style="display:none; flex:1; min-width:0; overflow-y:auto;">
+      <div class="stats-wrapper">
+        <h2 class="stats-header">System Command Center</h2>
+        
+        <div class="kpi-row">
+          <div class="kpi-card"><span class="lbl">Inflow <i class="pulse-dot"></i></span><span class="val" id="st_inflow">0 B/s</span></div>
+          <div class="kpi-card"><span class="lbl">Outflow <i class="pulse-dot pulse-out"></i></span><span class="val" id="st_outflow">0 B/s</span></div>
+          <div class="kpi-card"><span class="lbl">Total DL</span><span class="val" id="st_total_dl">0 MB</span></div>
+          <div class="kpi-card"><span class="lbl">Uptime</span><span class="val" id="st_uptime">00:00</span></div>
+        </div>
+
+        <div class="graph-row">
+          <div class="graph-row-header">
+            <span class="title">Live System RAM Usage</span>
+            <span class="sub" id="st_ram_readout">-- GB Used / --%</span>
+          </div>
+          <div class="ram-canvas-wrapper">
+            <canvas id="ramBigChart"></canvas>
+          </div>
+        </div>
+
+        <div class="split-row">
+          
+          <div class="box-card">
+            <div class="box-title">Hardware Status</div>
+            <div class="hw-item"><span class="hw-lbl">CPU Usage</span><span class="hw-val" id="st_cpu_pct">--%</span></div>
+            <div class="hw-item"><span class="hw-lbl">CPU Speed</span><span class="hw-val" id="st_cpu_temp" style="color:var(--amber);">-- GHz</span></div>
+            <div class="hw-item"><span class="hw-lbl">Mem Swap Activity</span><span class="hw-val" id="st_ram_swap">-- GB</span></div>
+            <div class="hw-item"><span class="hw-lbl">Redis DB Clients</span><span class="hw-val" id="st_redis_clients">--</span></div>
+            <div class="hw-item"><span class="hw-lbl">Redis Memory</span><span class="hw-val" id="st_redis_mem">-- GB</span></div>
+            <div class="hw-item"><span class="hw-lbl">Active Tickers</span><span class="hw-val" id="st_tickers">--</span></div>
+          </div>
+
+          <div class="box-card">
+            <div class="box-title">Pipeline Processes</div>
+            <div class="proc-tree" id="st_process_tree">
+              <div class="empty-procs">Waiting for process data...</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer id="statsBar">
+    <span>ws: <b id="stConn">connecting…</b></span><span class="sep"></span>
+    <span>clients: <b id="stClients">–</b></span><span class="sep"></span>
+    <span>active symbols: <b id="stActive">–</b></span><span class="sep"></span>
+    <span><i class="dot dot-in"></i>in: <b id="stIn">–</b> msg/s (<b id="stInB">–</b> B/s)</span><span class="sep"></span>
+    <span><i class="dot dot-out"></i>out: <b id="stOut">–</b> msg/s (<b id="stOutB">–</b> B/s)</span><span class="sep"></span>
+    <span class="spark-wrap" title="msgs/sec over the last ~1 min — green = in, amber = out"><canvas id="statSpark"></canvas></span>
+  </footer>
+
+<script>
+const MAX_SYMBOLS = 12;
+const DEFAULT_WINDOW = "10m";
+// Selected window -> seconds. Ticks carry time in SECONDS (server sends ms/1000),
+// so these are in seconds too. Live data is trimmed by TIME against the active
+// window (not a fixed tick count) so a busy symbol still shows the full period.
+const WINDOW_SEC = { "2m": 120, "10m": 600, "30m": 1800, "1h": 3600 };
+// Absolute safety ceiling so a pathological burst can't grow an array without
+// bound; the stream itself is capped at 36000, so this is never hit in practice.
+const MAX_POINTS = 60000;
+function windowSec(w){ return WINDOW_SEC[w] || WINDOW_SEC[DEFAULT_WINDOW]; }
+function trimWindow(arr, wsec, latestT){
+  const cutoff = latestT - wsec;
+  let i = 0; const L = arr.length;
+  while (i < L && arr[i].t < cutoff) i++;
+  if (i > 0) arr.splice(0, i);
+  if (arr.length > MAX_POINTS) arr.splice(0, arr.length - MAX_POINTS);
+}
+
+let ws = null, wsReady = false;
+const panels = {};
+let allSymbols = [];
+
+// ---------- Metric overlays ----------
+// Registry of everything that can ride on the price chart / show in the metrics
+// panel. `type:"line"` = single value drawn as a line (field "v"); "band" =
+// Bollinger (upper/lower); "value" = panel-only, not drawable on the price axis.
+const METRICS = {
+  ma:       { label: "MA (SMA)",    color: "#4f9dde", type: "line" },
+  vwma:     { label: "VWMA",        color: "#2ecc71", type: "line" },
+  ema:      { label: "EMA",         color: "#c77dff", type: "line" },
+  boll:     { label: "Bollinger",   color: "#8a93a6", type: "band" },
+  high:     { label: "High (30s)",  color: "#ef5350", type: "line" },
+  low:      { label: "Low (30s)",   color: "#00bcd4", type: "line" },
+  momentum: { label: "Momentum (30s)", color: "#9aa0aa", type: "value", fmt: v => (v >= 0 ? "+" : "") + v.toFixed(2) + "%" },
+  volume:   { label: "Volume (30s)",color: "#9aa0aa", type: "value", fmt: v => fmtQty(v) },
+};
+const METRIC_ORDER = ["ma", "vwma", "ema", "boll", "high", "low", "momentum", "volume"];
+const LINE_OVERLAYS = ["vwma", "ema", "high", "low"];   // drawn generically (MA has its own block)
+let detailMetrics = {};   // key -> array of points, for the focus symbol
+let enabledMetrics;
+try { enabledMetrics = new Set(JSON.parse(localStorage.getItem("enabledMetrics") || '["ma"]')); }
+catch (_) { enabledMetrics = new Set(["ma"]); }
+
+const sessionStartTime = Date.now();
+let totalBytesReceived = 0;
+
+// Draw scheduling. Ticks are ingested into the data arrays the instant they
+// arrive off the socket, but PAINTING is coalesced to one requestAnimationFrame.
+// rAF fires at the monitor's refresh rate (240Hz here), so we repaint up to
+// 240x/sec while never doing more work than the display can show. This is what
+// stops a fast symbol from backing up the WebSocket receive queue and dragging
+// the chart seconds behind Redis -- the old code repainted synchronously on
+// every single tick, which is unbounded work and falls progressively behind.
+const dirtyPanels = new Set();
+let rafPending = false;
+let detailDirty = false;
+function requestFlush(){
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(flushDraws);
+}
+function flushDraws(){
+  rafPending = false;
+  for (const p of dirtyPanels) draw(p);
+  dirtyPanels.clear();
+  if (detailDirty){ detailDirty = false; drawDetail(); }
+}
+function scheduleDraw(p){ dirtyPanels.add(p); requestFlush(); }
+function scheduleDetailDraw(){ detailDirty = true; requestFlush(); }
+
+// The stat rail / metrics panel rebuilds innerHTML (full reflow) -- far too
+// heavy to run per tick. Throttle it to ~8Hz; numbers there don't need 240fps.
+let statRailDirty = false, statRailTimer = null;
+function scheduleStatRail(){
+  statRailDirty = true;
+  if (statRailTimer) return;
+  statRailTimer = setTimeout(() => {
+    statRailTimer = null;
+    if (!statRailDirty) return;
+    statRailDirty = false;
+    if (detailSymbol){ updateDetailStatRail(detailTicks); updateMetricValues(); }
+  }, 120);
+}
+
+function setConnStatus(ok){
+  const dot = document.getElementById("connDot");
+  dot.className = "live-dot" + (ok ? "" : " off");
+  document.getElementById("stConn").textContent = ok ? "connected" : "disconnected";
+}
+
+function connectWS(){
+  ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+  ws.onopen = () => {
+    wsReady = true; setConnStatus(true);
+    for (const sym in panels){
+      ws.send(JSON.stringify({action:"subscribe", symbols:[sym], window: panels[sym].window}));
+    }
+  };
+  ws.onclose = () => { wsReady = false; setConnStatus(false); setTimeout(connectWS, 1000); };
+  ws.onerror = () => { try{ ws.close(); }catch(e){} };
+
+  ws.onmessage = (e) => {
+    totalBytesReceived += new Blob([e.data]).size;
+    let msg; try{ msg = JSON.parse(e.data); }catch(_){ return; }
+    if      (msg.type === "history")    onHistory(msg);
+    else if (msg.type === "ticks")      onTicks(msg);
+    else if (msg.type === "tick")       onTicks({symbol: msg.symbol, points: [msg]});
+    else if (msg.type === "ma-history") onMAHistory(msg);
+    else if (msg.type === "mas")        onMAs(msg);
+    else if (msg.type === "ma")         onMAs({symbol: msg.symbol, points: [msg]});
+    else if (msg.type === "metric")         onMetric(msg);
+    else if (msg.type === "metric-history") onMetricHistory(msg);
+    else if (msg.type === "stats")      onStats(msg);
+    else if (msg.type === "error")      onError(msg);
+  };
+}
+
+function updateReadout(p){
+  const n = p.ticks.length;
+  if (!n) return;
+  const last = p.ticks[n-1], first = p.ticks[0];
+  const chg = (last.v - first.v) / first.v * 100;
+  const cls = chg >= 0 ? "up" : "down";
+  p.pxEl.textContent = fmt(last.v); p.pxEl.className = "px " + cls;
+  p.chgEl.textContent = (chg>=0?"+":"") + chg.toFixed(2) + "%"; p.chgEl.className = "chg " + cls;
+  markSidebarChg(p.symbol, last.v, chg);
+  updateWatchRow(p.symbol, last.v, chg);
+}
+
+// NOTE: scheduleDetailDraw() was completely removed from the next 4 functions 
+// and replaced with synchronous drawDetail() for 1ms instant rendering!
+function onHistory(msg){
+  const p = panels[msg.symbol];
+  if (!p) return;
+  p.ticks = (msg.ticks || []).map(d => ({t: d.t, v: d.price, q: d.qty}));
+  if (msg.window) p.window = msg.window;
+  p.status.textContent = p.ticks.length ? "" : "no data yet";
+  updateReadout(p);
+  scheduleDraw(p);
+  if (detailSymbol === msg.symbol){
+    detailTicks = p.ticks.slice();
+    syncRangeButtons(p.window);
+    setDetailProgress(!msg.complete);
+    scheduleDetailDraw();
+    scheduleStatRail();
+  }
+}
+// Batched tick frame: ingest every point synchronously (no data loss), then
+// schedule a single coalesced repaint instead of painting per tick.
+function onTicks(msg){
+  const p = panels[msg.symbol];
+  if (!p || !msg.points || !msg.points.length) return;
+  const isDetail = detailSymbol === msg.symbol;
+  for (const d of msg.points){
+    const pt = {t: d.t, v: d.price, q: d.qty};
+    p.ticks.push(pt);
+    if (isDetail) detailTicks.push(pt);
+  }
+  const wsec = windowSec(p.window), latestT = p.ticks[p.ticks.length - 1].t;
+  trimWindow(p.ticks, wsec, latestT);
+  if (isDetail) trimWindow(detailTicks, wsec, latestT);
+  updateReadout(p);
+  scheduleDraw(p);
+  if (isDetail){ scheduleDetailDraw(); scheduleStatRail(); }
+}
+function onMAHistory(msg){
+  const p = panels[msg.symbol];
+  if (!p) return;
+  p.ma = (msg.points || []).map(d => ({t: d.t, v: d.ma}));
+  scheduleDraw(p);
+  if (detailSymbol === msg.symbol){
+    detailMA = p.ma.slice();
+    scheduleDetailDraw();
+  }
+}
+function onMAs(msg){
+  const p = panels[msg.symbol];
+  if (!p || !msg.points || !msg.points.length) return;
+  const isDetail = detailSymbol === msg.symbol;
+  for (const d of msg.points){
+    const pt = {t: d.t, v: d.ma};
+    p.ma.push(pt);
+    if (isDetail) detailMA.push(pt);
+  }
+  const wsec = windowSec(p.window), latestT = p.ma[p.ma.length - 1].t;
+  trimWindow(p.ma, wsec, latestT);
+  if (isDetail) trimWindow(detailMA, wsec, latestT);
+  scheduleDraw(p);
+  if (isDetail) scheduleDetailDraw();
+}
+// Overlay metric history (full window) -- replaces the series for that key.
+function onMetricHistory(msg){
+  const p = panels[msg.symbol];
+  if (!p || !msg.key) return;
+  const pts = (msg.points || []).slice();
+  p.metrics[msg.key] = pts;
+  scheduleDraw(p);
+  if (detailSymbol === msg.symbol){
+    detailMetrics[msg.key] = pts.slice();
+    scheduleDetailDraw();
+    scheduleStatRail();
+  }
+}
+// Live overlay metric batch -- append + time-trim to the active window.
+function onMetric(msg){
+  const p = panels[msg.symbol];
+  if (!p || !msg.key || !msg.points || !msg.points.length) return;
+  const key = msg.key, isDetail = detailSymbol === msg.symbol;
+  let arr = p.metrics[key]; if (!arr){ arr = p.metrics[key] = []; }
+  let darr = null;
+  if (isDetail){ darr = detailMetrics[key]; if (!darr){ darr = detailMetrics[key] = []; } }
+  for (const pt of msg.points){
+    arr.push(pt);
+    if (darr) darr.push(pt);
+  }
+  const wsec = windowSec(p.window), latestT = arr[arr.length - 1].t;
+  trimWindow(arr, wsec, latestT);
+  if (darr) trimWindow(darr, wsec, latestT);
+  scheduleDraw(p);
+  if (isDetail){ scheduleDetailDraw(); scheduleStatRail(); }
+}
+
+function onError(msg){
+  const p = panels[msg.symbol];
+  if (p) p.status.textContent = msg.message;
+  else alert(msg.message);
+}
+
+function fmt(v){
+  if (v == null || isNaN(v)) return "–";
+  const a = Math.abs(v);
+  if (a >= 1000) return v.toFixed(2);
+  if (a >= 1)    return v.toFixed(4);
+  return v.toPrecision(5);
+}
+function fmtQty(v){
+  if (v == null || isNaN(v)) return "–";
+  if (v >= 1e6) return (v/1e6).toFixed(2)+"M";
+  if (v >= 1e3) return (v/1e3).toFixed(2)+"K";
+  return v.toFixed(3);
+}
+function getC(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+const COLORS = { amber: getC("--amber"), green: getC("--green"), red: getC("--red"), ma: getC("--ma"), dim: getC("--dim") };
+
+const istTimeFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+const istTimeFmtMs = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3, hour12: false });
+function fmtTimeIST(epochSec, withMs){ return (withMs ? istTimeFmtMs : istTimeFmt).format(new Date(epochSec * 1000)); }
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+function formatUptime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60), s = totalSec % 60;
+  return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
+}
+
+// ---------- Panel UI ----------
+function addSymbol(symRaw){
+  const sym = symRaw.trim().toUpperCase();
+  if (!sym || panels[sym]) return;
+  if (Object.keys(panels).length >= MAX_SYMBOLS){ alert(`limit of ${MAX_SYMBOLS} symbols reached`); return; }
+  document.getElementById("widgetEmpty")?.remove(); document.getElementById("emptyHint")?.remove();
+
+  const card = document.createElement("div"); card.className = "panel";
+  card.innerHTML = `<div class="phead"><span class="sym">${sym}</span><span class="px">–</span><span class="chg"></span><span class="spacer"></span><button class="expandbtn">⤢</button><button class="closebtn">×</button></div>
+    <div class="pcanvas-wrap"><canvas></canvas><div class="pstatus">loading…</div><div class="ptooltip"></div></div>`;
+  
+  if (viewMode === "grid"){ document.getElementById("grid").appendChild(card); } else { document.getElementById("widgetScroll").appendChild(card); }
+
+  const canvas = card.querySelector("canvas");
+  const p = { symbol: sym, ticks: [], ma: [], metrics: {}, window: DEFAULT_WINDOW, canvas, ctx: canvas.getContext("2d"), hover: null, card, pxEl: card.querySelector(".px"), chgEl: card.querySelector(".chg"), status: card.querySelector(".pstatus"), tooltipEl: card.querySelector(".ptooltip") };
+  panels[sym] = p;
+  card.querySelector(".closebtn").addEventListener("click", () => removeSymbol(sym, card));
+  card.querySelector(".expandbtn").addEventListener("click", () => openDetail(sym));
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (!p.ticks.length) return;
+    const rect = canvas.getBoundingClientRect(), padL = 4, padR = 4, plotW = canvas.clientWidth - padL - padR;
+    const frac = (e.clientX - rect.left - padL) / plotW;
+    let idx = Math.round(frac * (p.ticks.length - 1));
+    if (idx < 0 || idx >= p.ticks.length) idx = null;
+    if (idx !== p.hover){ p.hover = idx; draw(p); }
+  });
+  canvas.addEventListener("mouseleave", () => { p.hover = null; draw(p); });
+
+  updateSlotCount(); markSidebar(sym, true); addWatchRow(sym);
+  if (!detailSymbol) openDetail(sym); 
+  relayout();
+  if (wsReady) ws.send(JSON.stringify({action:"subscribe", symbols:[sym], window: p.window}));
+}
+
+function removeSymbol(sym, card){
+  if (wsReady) ws.send(JSON.stringify({action:"unsubscribe", symbols:[sym]}));
+  delete panels[sym]; card?.remove(); removeWatchRow(sym); updateSlotCount(); markSidebar(sym, false);
+
+  if (detailSymbol === sym){
+    const remaining = Object.keys(panels);
+    if (remaining.length){ openDetail(remaining[0]); } else {
+      detailSymbol = null; detailTicks = []; detailMA = []; detailMetrics = {}; updateMetricValues();
+      document.getElementById("mainChartBody").style.display = "none"; document.getElementById("mainChartEmpty").style.display = "flex";
+      document.getElementById("mainSym").textContent = "–"; document.getElementById("mainPx").textContent = "–"; document.getElementById("mainChg").textContent = "";
+      document.getElementById("metricsSymLabel").textContent = "–";
+    }
+  }
+  relayout();
+}
+function updateSlotCount(){ document.getElementById("slotUsed").textContent = Object.keys(panels).length; }
+
+function draw(p){
+  const dpr = window.devicePixelRatio || 1, W = p.canvas.clientWidth, H = p.canvas.clientHeight;
+  if (!W || !H) return;
+  if (p._lastW !== W || p._lastH !== H || p._lastDpr !== dpr){ p.canvas.width = W*dpr; p.canvas.height = H*dpr; p._lastW = W; p._lastH = H; p._lastDpr = dpr; }
+  const ctx = p.ctx; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  const ticks = p.ticks, n = ticks.length; if (!n) return;
+
+  const padL = 4, padR = 52, padT = 6, axisH = 13, plotW = W - padL - padR, plotH = H - padT - axisH;
+  // Time-proportional X: position = where the tick sits in [t0, t1] real time,
+  // not its arrival index. A burst of trades in a few ms collapses to its true
+  // width instead of being smeared across the panel.
+  const t0 = ticks[0].t, t1 = ticks[n-1].t, tspan = (t1 - t0) || 1;
+  let lo = Infinity, hi = -Infinity;
+  for (const d of ticks){ if (d.v < lo) lo = d.v; if (d.v > hi) hi = d.v; }
+  [lo, hi] = rangeWithOverlays(lo, hi, p.metrics, p.ma, t0, t1);
+  if (lo === hi){ lo -= 1; hi += 1; }
+  const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+
+  const x = t => padL + (n === 1 ? plotW/2 : (t - t0)/tspan * plotW), yP = v => padT + (hi - v)/(hi - lo) * plotH;
+
+  ctx.strokeStyle = COLORS.amber; ctx.lineWidth = 1; ctx.beginPath();
+  for (let i=0;i<n;i++){ const px=x(ticks[i].t), py=yP(ticks[i].v); i?ctx.lineTo(px,py):ctx.moveTo(px,py); } ctx.stroke();
+
+  drawOverlays(ctx, p.metrics, p.ma, x, yP, t0, t1, 1.1);
+}
+function nearestMA(ma, t){
+  if (!ma.length) return null;
+  for (let i=ma.length-1;i>=0;i--){ if (ma[i].t <= t) return ma[i].v; } return null;
+}
+
+// ---------- Generic overlay rendering (shared by detail + mini panels) ----------
+function drawSeriesLine(ctx, pts, field, color, x, yP, t0, t1, lw){
+  if (!pts || !pts.length) return;
+  ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath();
+  let started = false;
+  for (const p of pts){
+    if (p.t < t0 || p.t > t1) continue;
+    const v = p[field]; if (v == null) continue;
+    const px = x(p.t), py = yP(v);
+    started ? ctx.lineTo(px, py) : (ctx.moveTo(px, py), started = true);
+  }
+  ctx.stroke();
+}
+function drawSeriesBand(ctx, pts, color, x, yP, t0, t1){
+  if (!pts) return;
+  const vis = [];
+  for (const p of pts){ if (p.t >= t0 && p.t <= t1 && p.upper != null && p.lower != null) vis.push(p); }
+  if (vis.length < 2) return;
+  ctx.beginPath();
+  for (let i = 0; i < vis.length; i++){ const p = vis[i]; const px = x(p.t), py = yP(p.upper); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  for (let i = vis.length - 1; i >= 0; i--){ const p = vis[i]; ctx.lineTo(x(p.t), yP(p.lower)); }
+  ctx.closePath();
+  ctx.globalAlpha = 0.08; ctx.fillStyle = color; ctx.fill(); ctx.globalAlpha = 0.65;
+  ctx.strokeStyle = color; ctx.lineWidth = 1;
+  ctx.beginPath(); for (let i = 0; i < vis.length; i++){ const p = vis[i]; const px = x(p.t), py = yP(p.upper); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke();
+  ctx.beginPath(); for (let i = 0; i < vis.length; i++){ const p = vis[i]; const px = x(p.t), py = yP(p.lower); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+// Draw all enabled overlays for a metrics dict + MA array (band behind lines).
+function drawOverlays(ctx, mdata, maPts, x, yP, t0, t1, lw){
+  if (mdata && enabledMetrics.has("boll")) drawSeriesBand(ctx, mdata.boll, METRICS.boll.color, x, yP, t0, t1);
+  if (mdata) for (const key of LINE_OVERLAYS){
+    if (enabledMetrics.has(key)) drawSeriesLine(ctx, mdata[key], "v", METRICS[key].color, x, yP, t0, t1, lw);
+  }
+  if (enabledMetrics.has("ma")) drawSeriesLine(ctx, maPts, "v", METRICS.ma.color, x, yP, t0, t1, lw);
+}
+// Expand [lo,hi] to include every enabled overlay within [t0,t1].
+function rangeWithOverlays(lo, hi, mdata, maPts, t0, t1){
+  const consider = v => { if (v != null){ if (v < lo) lo = v; if (v > hi) hi = v; } };
+  if (enabledMetrics.has("ma") && maPts) for (const p of maPts){ if (p.t < t0 || p.t > t1) continue; consider(p.v); }
+  if (mdata){
+    if (enabledMetrics.has("boll") && mdata.boll) for (const p of mdata.boll){ if (p.t < t0 || p.t > t1) continue; consider(p.upper); consider(p.lower); }
+    for (const key of LINE_OVERLAYS) if (enabledMetrics.has(key) && mdata[key]) for (const p of mdata[key]){ if (p.t < t0 || p.t > t1) continue; consider(p.v); }
+  }
+  return [lo, hi];
+}
+
+// ---------- Metric checklist (bottom-middle panel) ----------
+function renderMetricList(){
+  const el = document.getElementById("metricList");
+  if (!el) return;
+  let html = "";
+  for (const key of METRIC_ORDER){
+    const m = METRICS[key];
+    const box = m.type === "value"
+      ? `<span class="ml-novis"></span>`
+      : `<input type="checkbox" class="ml-cb" data-key="${key}" ${enabledMetrics.has(key) ? "checked" : ""}>`;
+    html += `<label class="metric-row">${box}<span class="ml-swatch" style="background:${m.color}"></span><span class="ml-label">${m.label}</span><span class="ml-val" id="mval_${key}">–</span></label>`;
+  }
+  el.innerHTML = html;
+}
+function updateMetricValues(){
+  for (const key of METRIC_ORDER){
+    const el = document.getElementById("mval_" + key);
+    if (!el) continue;
+    let txt = "–";
+    if (key === "ma"){
+      if (detailMA.length) txt = fmt(detailMA[detailMA.length - 1].v);
+    } else {
+      const a = detailMetrics[key];
+      if (a && a.length){
+        const last = a[a.length - 1];
+        if (key === "boll"){ txt = fmt(last.upper) + " / " + fmt(last.lower); }
+        else { const m = METRICS[key]; txt = (last.v == null) ? "–" : (m.fmt ? m.fmt(last.v) : fmt(last.v)); }
+      }
+    }
+    el.textContent = txt;
+  }
+}
+
+window.addEventListener("resize", () => { for (const s in panels) scheduleDraw(panels[s]); if (detailSymbol) drawDetail(); });
+
+let detailSymbol = null, detailHover = null, detailTicks = [], detailMA = [], detailLastW = 0, detailLastH = 0, detailLastDpr = 0;
+const detailCanvas = document.getElementById("detailCanvas"), detailCtx = detailCanvas.getContext("2d"), detailStatusEl = document.getElementById("detailStatus");
+
+function syncRangeButtons(window_){ document.querySelectorAll("#mainRanges button").forEach(b => b.classList.toggle("active", b.dataset.window === window_)); }
+function setDetailProgress(loading){ const bar = document.getElementById("detailProgress"); if (loading){ bar.style.opacity = "1"; bar.style.width = "65%"; } else { bar.style.width = "100%"; setTimeout(() => { bar.style.opacity = "0"; }, 200); } }
+
+function openDetail(sym){
+  if (!panels[sym]) addSymbol(sym);
+  detailSymbol = sym; detailHover = null;
+  document.getElementById("mainSym").textContent = sym; document.getElementById("mainChartEmpty").style.display = "none"; document.getElementById("mainChartBody").style.display = "flex";
+  document.getElementById("metricsSymLabel").textContent = sym;
+  markActiveWatchRow(sym); syncRangeButtons(panels[sym]?.window || DEFAULT_WINDOW);
+  detailTicks = (panels[sym]?.ticks || []).slice(); detailMA = (panels[sym]?.ma || []).slice();
+  detailMetrics = {}; const _pm = panels[sym]?.metrics || {}; for (const k in _pm) detailMetrics[k] = _pm[k].slice();
+  document.getElementById("detailStatus").textContent = ""; setDetailProgress(false); updateDetailStatRail(detailTicks); updateMetricValues(); drawDetail();
+}
+
+let viewMode = "focus";
+const tabFocusEl = document.getElementById("tabFocus"), tabGridEl = document.getElementById("tabGrid"), tabStatsEl = document.getElementById("tabStats");
+
+function relayout(){
+  if (viewMode === "grid"){ for (const s in panels){ document.getElementById("grid").appendChild(panels[s].card); scheduleDraw(panels[s]); } } 
+  else if (viewMode === "focus") {
+    for (const s in panels){ document.getElementById("widgetScroll").appendChild(panels[s].card); scheduleDraw(panels[s]); }
+    const ws_ = document.getElementById("widgetScroll"), we = document.getElementById("widgetEmpty");
+    if (!Object.keys(panels).length && !we){ const h = document.createElement("div"); h.className="widget-col-empty"; h.id="widgetEmpty"; h.textContent="add symbols to see live charts"; ws_.appendChild(h); } else if (Object.keys(panels).length && we){ we.remove(); }
+  }
+}
+
+function setViewMode(mode){
+  viewMode = mode;
+  tabFocusEl.classList.toggle("active", mode === "focus"); tabGridEl.classList.toggle("active", mode === "grid"); tabStatsEl.classList.toggle("active", mode === "stats");
+  document.getElementById("focusView").style.display = mode === "focus" ? "flex" : "none";
+  document.getElementById("grid").style.display = mode === "grid" ? "grid" : "none";
+  document.getElementById("statsView").style.display = mode === "stats" ? "block" : "none";
+  if (mode === "focus" && !detailSymbol){ const first = Object.keys(panels)[0]; if (first) openDetail(first); }
+  relayout();
+}
+tabFocusEl.addEventListener("click", () => setViewMode("focus")); tabGridEl.addEventListener("click", () => setViewMode("grid")); tabStatsEl.addEventListener("click", () => setViewMode("stats"));
+
+const watchRows = new Map();
+function addWatchRow(sym){
+  document.getElementById("watchListEmpty")?.remove();
+  const row = document.createElement("div"); row.className = "watch-row"; row.innerHTML = `<span class="wr-name">${sym}</span><span class="wr-last">–</span><span class="wr-chg"></span>`;
+  document.getElementById("watchList").appendChild(row);
+  row.addEventListener("click", () => { openDetail(sym); setViewMode("focus"); });
+  watchRows.set(sym, { row, lastEl: row.querySelector(".wr-last"), chgEl: row.querySelector(".wr-chg") });
+}
+function markActiveWatchRow(sym){ for (const [s, ref] of watchRows){ ref.row.classList.toggle("active", s === sym); } }
+function removeWatchRow(sym){ watchRows.get(sym)?.row.remove(); watchRows.delete(sym); }
+function updateWatchRow(sym, last, chg){
+  const ref = watchRows.get(sym); if (!ref) return;
+  if (ref.prevLast !== undefined && ref.prevLast !== last) { const flashCls = last > ref.prevLast ? "flash-up" : "flash-down"; ref.row.classList.remove("flash-up", "flash-down"); void ref.row.offsetWidth; ref.row.classList.add(flashCls); }
+  ref.prevLast = last; ref.lastEl.textContent = fmt(last); ref.chgEl.textContent = (chg>=0?"+":"")+chg.toFixed(1)+"%"; ref.chgEl.className = "wr-chg " + (chg>=0?"up":"down");
+}
+
+document.getElementById("mainRanges").addEventListener("click", (e) => {
+  if (e.target.tagName !== "BUTTON" || !detailSymbol) return;
+  const window_ = e.target.dataset.window; panels[detailSymbol].window = window_; syncRangeButtons(window_); setDetailProgress(true);
+  if (wsReady) ws.send(JSON.stringify({action:"set_window", symbol: detailSymbol, window: window_}));
+});
+
+function pctChangeOverSeconds(ticks, seconds){
+  if (ticks.length < 2) return null;
+  const lastT = ticks[ticks.length-1].t, cutoff = lastT - seconds;
+  if (ticks[0].t > cutoff) return null;
+  let i = 0; while (i < ticks.length-1 && ticks[i].t < cutoff) i++;
+  return (ticks[ticks.length-1].v - ticks[i].v) / ticks[i].v * 100;
+}
+function updateMainHeader(){
+  if (!detailSymbol || !panels[detailSymbol]) return;
+  const p = panels[detailSymbol], n = p.ticks.length; if (!n) return;
+  const last = p.ticks[n-1], first = p.ticks[0], chg = (last.v-first.v)/first.v*100, cls = chg>=0?"up":"down";
+  document.getElementById("mainPx").textContent = fmt(last.v); document.getElementById("mainPx").className = "mch-px " + cls;
+  document.getElementById("mainChg").textContent = (chg>=0?"+":"")+chg.toFixed(2)+"%"; document.getElementById("mainChg").className = "mch-chg " + cls;
+}
+function updateDetailStatRail(ticks){
+  const el = document.getElementById("mainStatRail");
+  if (!ticks.length){ el.innerHTML = ""; return; }
+  const last = ticks[ticks.length-1], first = ticks[0];
+  let hi=-Infinity, lo=Infinity; for (const d of ticks){ if(d.v>hi)hi=d.v; if(d.v<lo)lo=d.v; }
+  const chg = (last.v-first.v)/first.v*100, cls = chg>=0?"up":"down";
+  const range = hi - lo, posPct = range > 0 ? Math.round(((last.v - lo)/range)*100) : 50;
+  const win = (panels[detailSymbol] && panels[detailSymbol].window) || DEFAULT_WINDOW;
+
+  let html = "";
+  html += `<div class="tile"><div class="lbl">Last</div><div class="val ${cls}">${fmt(last.v)}</div></div>`;
+  html += `<div class="tile"><div class="lbl">Change</div><div class="val ${cls}">${(chg>=0?"+":"")+chg.toFixed(2)+"%"}</div></div>`;
+  // High, with a bar showing how close the current price is to the high (100% = at high)
+  html += `<div class="tile"><div class="lbl">High ${win}</div><div class="val">${fmt(hi)}</div><div class="metric-bar-track"><div class="metric-bar-fill" style="width:${posPct}%;background:var(--green)"></div></div></div>`;
+  html += `<div class="tile"><div class="lbl">Ticks</div><div class="val">${ticks.length}</div></div>`;
+  html += `<div class="tile"><div class="lbl">Low ${win}</div><div class="val">${fmt(lo)}</div></div>`;
+  html += `<div class="rail-label">Return</div>`;
+  const windows = [["1m",60], ["5m",300], ["10m",600]];
+  html += windows.map(([label, secs]) => {
+    const pct = pctChangeOverSeconds(ticks, secs), rcls = pct == null ? "" : (pct >= 0 ? "up" : "down"), text = pct == null ? "–" : (pct>=0?"+":"")+pct.toFixed(2)+"%";
+    return `<div class="tile"><div class="lbl">${label}</div><div class="val ${rcls}">${text}</div></div>`;
+  }).join("");
+  el.innerHTML = html; updateMainHeader();
+}
+
+// ---------- NEW FULLY UN-MINIFIED DETAIL CHART RENDERING ----------
+function drawDetail() {
+    if (!detailSymbol) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W = detailCanvas.clientWidth;
+    const H = detailCanvas.clientHeight;
+    
+    if (!W || !H) return;
+    
+    if (detailLastW !== W || detailLastH !== H || detailLastDpr !== dpr) {
+        detailCanvas.width = W * dpr;
+        detailCanvas.height = H * dpr;
+        detailLastW = W;
+        detailLastH = H;
+        detailLastDpr = dpr;
+    }
+    
+    detailCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const ctx = detailCtx;
+    ctx.clearRect(0, 0, W, H);
+
+    const ticks = detailTicks;
+    // NOTE: stat-rail / metrics rebuild is intentionally NOT done here -- it is
+    // an innerHTML reflow and this function runs every animation frame. It is
+    // driven separately by scheduleStatRail() at ~8Hz.
+    if (!ticks.length) {
+        detailStatusEl.textContent = "no data yet";
+        return;
+    }
+    detailStatusEl.textContent = "";
+
+    // Expanded padding so X-axis and right labels are never cut off
+    const padR = 75, padL = 8, padT = 14, axisH = 26;
+    const plotW = W - padR - padL;
+    const plotH = H - padT - axisH;
+    const n = ticks.length;
+
+    // Time-proportional X axis anchored to the SELECTED window: the domain is
+    // exactly [t1 - window, t1], so 2m/10m/30m/1h always show their full span
+    // (data that doesn't reach back simply leaves empty space on the left).
+    // Horizontal position is real time, not arrival index, so a millisecond
+    // burst renders at its true tiny width instead of a stretched comb.
+    const t1 = ticks[n - 1].t;
+    const tspan = windowSec(panels[detailSymbol] && panels[detailSymbol].window);
+    const t0 = t1 - tspan;
+    const x = t => padL + (n === 1 ? plotW / 2 : (t - t0) / tspan * plotW);
+
+    // Y-range over what's actually in the window (guards a brief moment after
+    // switching to a smaller window before stale points are trimmed out).
+    let lo = Infinity, hi = -Infinity;
+    for (const d of ticks) {
+        if (d.t < t0) continue;
+        if (d.v < lo) lo = d.v;
+        if (d.v > hi) hi = d.v;
+    }
+    [lo, hi] = rangeWithOverlays(lo, hi, detailMetrics, detailMA, t0, t1);
+    if (lo === Infinity) { lo = ticks[n-1].v; hi = ticks[n-1].v; }
+
+    const padPrice = (hi - lo) * 0.08 || hi * 0.01 || 1;
+    hi += padPrice;
+    lo -= padPrice;
+
+    const yP = v => padT + (hi - v) / (hi - lo) * plotH;
+
+    // 1. Background Gridlines & Y-Axis Prices
+    ctx.font = "10px var(--mono)";
+    ctx.textBaseline = "middle";
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    ctx.fillStyle = "#5a606b";
+    const gl = 6;
+    for (let t = 0; t <= gl; t++) {
+        const pr = lo + (hi - lo) * t / gl;
+        const y = yP(pr);
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(padL + plotW, y);
+        ctx.stroke();
+        ctx.textAlign = "left";
+        ctx.fillText(fmt(pr), padL + plotW + 6, y);
+    }
+
+    // 2. X-Axis Time Labels
+    ctx.fillStyle = COLORS.dim;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const lab = 6;
+    for (let t = 0; t <= lab; t++) {
+        // Labels are evenly spaced in TIME now (not by index), so they are
+        // monotonic and never repeat the same second twice.
+        const tt = t0 + tspan * t / lab;
+        const px = padL + plotW * t / lab;
+        ctx.fillText(fmtTimeIST(tt), px, H - axisH + 6);
+    }
+
+    // 2b. Bollinger band -- drawn behind the price line.
+    if (enabledMetrics.has("boll")) drawSeriesBand(ctx, detailMetrics.boll, METRICS.boll.color, x, yP, t0, t1);
+
+    // 3. Main Price Line (clipped to the window time domain)
+    ctx.strokeStyle = COLORS.amber;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < n; i++) {
+        if (ticks[i].t < t0) continue;
+        const px = x(ticks[i].t);
+        const py = yP(ticks[i].v);
+        started ? ctx.lineTo(px, py) : (ctx.moveTo(px, py), started = true);
+    }
+    ctx.stroke();
+
+    // 4. Overlay lines (each clipped to the visible time range). MA keeps its
+    // own colour + floating label below; the rest are drawn generically.
+    for (const key of LINE_OVERLAYS) {
+        if (enabledMetrics.has(key)) drawSeriesLine(ctx, detailMetrics[key], "v", METRICS[key].color, x, yP, t0, t1, 1.5);
+    }
+    if (enabledMetrics.has("ma")) drawSeriesLine(ctx, detailMA, "v", METRICS.ma.color, x, yP, t0, t1, 1.5);
+
+    // 5. Last Price Dynamic Floating Marker
+    const ly = yP(ticks[n-1].v);
+    ctx.strokeStyle = COLORS.amber;
+    ctx.setLineDash([3,3]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, ly);
+    ctx.lineTo(padL + plotW, ly);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    ctx.fillStyle = COLORS.amber;
+    ctx.fillRect(padL + plotW, ly - 9, padR - 2, 18);
+    ctx.fillStyle = "#0a0b0d";
+    ctx.textAlign = "left";
+    ctx.fillText(fmt(ticks[n-1].v), padL + plotW + 5, ly);
+
+    // 6. Last MA Dynamic Floating Marker
+    if (enabledMetrics.has("ma") && detailMA.length) {
+        const lastMAv = detailMA[detailMA.length-1].v;
+        let may = yP(lastMAv);
+        
+        // Prevent overlap with price label
+        if (Math.abs(may - ly) < 18) {
+            may = ly + (may >= ly ? 18 : -18);
+        }
+        may = Math.max(padT + 9, Math.min(padT + plotH - 9, may));
+        
+        ctx.fillStyle = COLORS.ma;
+        ctx.fillRect(padL + plotW, may - 9, padR - 2, 18);
+        ctx.fillStyle = "#0a0b0d";
+        ctx.textAlign = "left";
+        ctx.fillText(fmt(lastMAv), padL + plotW + 5, may);
+    }
+
+    // 7. Dynamic Hover Crosshair & Tooltip
+    const tip = document.getElementById("detailTooltip");
+    if (detailHover != null && detailHover >= 0 && detailHover < n) {
+        const d = ticks[detailHover];
+        const cx = x(d.t);
+
+        ctx.strokeStyle = "rgba(224,162,51,0.5)";
+        ctx.setLineDash([2, 3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx, padT);
+        ctx.lineTo(cx, padT + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        const mav = enabledMetrics.has("ma") ? nearestMA(detailMA, d.t) : null;
+        tip.style.display = "block";
+        tip.style.left = Math.min(cx + 14, W - 180) + "px";
+        tip.style.top = (padT + 8) + "px";
+        tip.innerHTML =
+            `<b>${fmtTimeIST(d.t, true)}</b><br>` +
+            `Price <b>${fmt(d.v)}</b><br>` +
+            `Qty <b>${fmtQty(d.q)}</b>` +
+            (mav != null ? `<br>MA <b style="color:${COLORS.ma}">${fmt(mav)}</b>` : "");
+    } else {
+        tip.style.display = "none";
+    }
+}
+
+detailCanvas.addEventListener("mousemove", (e) => {
+  const ticks = detailTicks; if (!ticks.length) return;
+  const rect = detailCanvas.getBoundingClientRect();
+  const padL=8, padR=75, plotW=detailCanvas.clientWidth-padR-padL;
+  const frac=(e.clientX-rect.left-padL)/plotW;
+  // Time axis: map the cursor x to a time, then pick the nearest tick by time
+  // (binary search) rather than by index.
+  let idx=null;
+  if (frac>=0 && frac<=1){
+    const t0=ticks[0].t, t1=ticks[ticks.length-1].t, tt=t0+frac*(t1-t0);
+    let lo=0, hi=ticks.length-1;
+    while (lo<hi){ const mid=(lo+hi)>>1; if (ticks[mid].t<tt) lo=mid+1; else hi=mid; }
+    idx = (lo>0 && Math.abs(ticks[lo-1].t-tt) <= Math.abs(ticks[lo].t-tt)) ? lo-1 : lo;
+  }
+  if (idx!==detailHover){ detailHover=idx; drawDetail(); }
+});
+detailCanvas.addEventListener("mouseleave", () => { detailHover=null; drawDetail(); });
+
+const sidebarRows = new Map(); 
+function renderSidebar(){
+  const el = document.getElementById("symSidebar"); sidebarRows.clear();
+  if (!allSymbols.length){ el.innerHTML = '<div class="sym-sidebar-empty">no symbols</div>'; return; }
+  el.innerHTML = "";
+  for (const sym of allSymbols){
+    const row = document.createElement("div"); row.className = "sym-row" + (panels[sym] ? " active" : ""); row.dataset.sym = sym;
+    row.innerHTML = `<span class="sr-name">${sym}</span><span class="sr-last">–</span><span class="sr-chg"></span>`;
+    row.addEventListener("click", () => { panels[sym] ? removeSymbol(sym, panels[sym].card) : addSymbol(sym); });
+    el.appendChild(row); sidebarRows.set(sym, { row, lastEl: row.querySelector(".sr-last"), chgEl: row.querySelector(".sr-chg") });
+  }
+}
+function markSidebar(sym, active){
+  const ref = sidebarRows.get(sym); if (ref) ref.row.classList.toggle("active", active);
+  if (ref && !active){ ref.lastEl.textContent = "–"; ref.chgEl.textContent = ""; ref.chgEl.className = "sr-chg"; }
+}
+function markSidebarChg(sym, last, chg){
+  const ref = sidebarRows.get(sym);
+  if (ref){ ref.lastEl.textContent = fmt(last); ref.chgEl.textContent = (chg>=0?"+":"")+chg.toFixed(1)+"%"; ref.chgEl.className = "sr-chg " + (chg>=0?"up":"down"); }
+}
+
+// ── Shared Sparkline Arrays ──
+const sparkIn = [], sparkOut = [], SPARK_MAX = 60;
+const histRam = [], histCpu = []; 
+
+const statSpark = document.getElementById("statSpark");
+const sparkCtx = statSpark.getContext("2d");
+function pushSpark(arr, v){ arr.push(+v||0); if (arr.length>SPARK_MAX) arr.shift(); }
+
+let sparkLastW = 0, sparkLastH = 0, sparkLastDpr = 0;
+function drawSpark(){
+  const dpr=window.devicePixelRatio||1, W=statSpark.clientWidth||140, H=statSpark.clientHeight||22;
+  if (sparkLastW !== W || sparkLastH !== H || sparkLastDpr !== dpr){
+    statSpark.width=W*dpr; statSpark.height=H*dpr;
+    sparkLastW=W; sparkLastH=H; sparkLastDpr=dpr;
+  }
+  sparkCtx.setTransform(dpr,0,0,dpr,0,0);
+  sparkCtx.clearRect(0,0,W,H);
+  const all=sparkIn.concat(sparkOut); const mx=Math.max(1,...all);
+  const plot=(arr,col)=>{ if(arr.length<2)return; sparkCtx.strokeStyle=col; sparkCtx.lineWidth=1; sparkCtx.beginPath();
+    arr.forEach((v,i)=>{ const x=i/(SPARK_MAX-1)*W, y=H-(v/mx)*H; i?sparkCtx.lineTo(x,y):sparkCtx.moveTo(x,y); }); sparkCtx.stroke(); };
+  plot(sparkIn, COLORS.green); plot(sparkOut, COLORS.amber);
+}
+
+// ── Generic Card Sparkline Renderer ──
+function drawCardSpark(canvasId, arr, col, maxVal=100) {
+  const cvs = document.getElementById(canvasId);
+  if (!cvs) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = cvs.clientWidth || 100, H = cvs.clientHeight || 28;
+  if (cvs.width !== W*dpr || cvs.height !== H*dpr) {
+    cvs.width = W*dpr; cvs.height = H*dpr;
+  }
+  const ctx = cvs.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  if (arr.length < 2) return;
+
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  arr.forEach((v, i) => { ctx.lineTo(i / (SPARK_MAX - 1) * W, H - (v / maxVal) * H); });
+  ctx.lineTo(W, H);
+  ctx.fillStyle = col;
+  ctx.globalAlpha = 0.15;
+  ctx.fill();
+  ctx.globalAlpha = 1.0;
+
+  ctx.beginPath();
+  arr.forEach((v, i) => { i ? ctx.lineTo(i / (SPARK_MAX - 1) * W, H - (v / maxVal) * H) : ctx.moveTo(i / (SPARK_MAX - 1) * W, H - (v / maxVal) * H); });
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+// ── NEW: Dedicated Big RAM Graph ──
+const ramHistory = [];
+const ramCanvas = document.getElementById("ramBigChart");
+const ramCtx = ramCanvas.getContext("2d");
+let rLastW=0, rLastH=0;
+
+function updateRamGraph(pct) {
+  pushSpark(ramHistory, pct);
+  
+  const dpr = window.devicePixelRatio || 1;
+  const W = ramCanvas.clientWidth, H = ramCanvas.clientHeight;
+  if(!W || !H) return;
+  if (rLastW !== W || rLastH !== H) {
+    ramCanvas.width = W * dpr; ramCanvas.height = H * dpr;
+    rLastW = W; rLastH = H;
+  }
+  
+  ramCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ramCtx.clearRect(0, 0, W, H);
+  
+  if (ramHistory.length < 2) return;
+  
+  const color = pct > 85 ? COLORS.red : (pct > 70 ? COLORS.amber : COLORS.ma);
+  
+  ramCtx.beginPath();
+  ramCtx.moveTo(0, H);
+  ramHistory.forEach((v, i) => { ramCtx.lineTo(i / (SPARK_MAX - 1) * W, H - (v / 100) * H); });
+  ramCtx.lineTo(W, H);
+  ramCtx.fillStyle = color;
+  ramCtx.globalAlpha = 0.15;
+  ramCtx.fill();
+  ramCtx.globalAlpha = 1.0;
+
+  ramCtx.beginPath();
+  ramHistory.forEach((v, i) => { 
+    const x = i / (SPARK_MAX - 1) * W; const y = H - (v / 100) * H;
+    i ? ramCtx.lineTo(x, y) : ramCtx.moveTo(x, y); 
+  });
+  ramCtx.strokeStyle = color;
+  ramCtx.lineWidth = 2;
+  ramCtx.stroke();
+}
+
+
+// ── Stats Receiver ──
+function onStats(msg) {
+  document.getElementById("stClients").textContent = msg.clients_connected;
+  document.getElementById("stActive").textContent = msg.active_symbols;
+  document.getElementById("stIn").textContent = msg.msgs_in_per_sec;
+  document.getElementById("stOut").textContent = msg.msgs_out_per_sec;
+  
+  if (msg.bytes_in_per_sec !== undefined) document.getElementById("st_inflow").textContent = formatBytes(msg.bytes_in_per_sec) + "/s";
+  if (msg.bytes_out_per_sec !== undefined) document.getElementById("st_outflow").textContent = formatBytes(msg.bytes_out_per_sec) + "/s";
+  
+  if (msg.hardware) {
+      document.getElementById("st_ram_readout").textContent = `${msg.hardware.ram_gb} GB Used / ${msg.hardware.ram_pct}%`;
+      updateRamGraph(msg.hardware.ram_pct);
+
+      document.getElementById("st_cpu_pct").textContent = msg.hardware.cpu_pct + "%";
+      document.getElementById("st_cpu_temp").textContent = msg.hardware.cpu_temp;
+      document.getElementById("st_ram_swap").textContent = msg.hardware.swap_gb + " GB";
+      document.getElementById("st_redis_clients").textContent = msg.clients_connected;
+      document.getElementById("st_redis_mem").textContent = msg.hardware.redis_gb + " GB";
+      document.getElementById("st_tickers").textContent = allSymbols.length;
+
+        // Process Tree Update
+      const treeEl = document.getElementById("st_process_tree");
+      if (msg.hardware.process_tree.length > 0) {
+          let treeHtml = "";
+          msg.hardware.process_tree.forEach(proc => {
+              treeHtml += `<div class="proc-item">
+                  <details>
+                      <summary>${proc.script} <span>PID: ${proc.pid}</span></summary>
+                      <ul>
+                          ${proc.children.length === 0 ? "<li>No child workers active</li>" : 
+                            proc.children.map(c => `<li>${c.name} <span>PID: ${c.pid}</span></li>`).join("")}
+                      </ul>
+                  </details>
+              </div>`;
+          });
+          
+          // --- THE DIFF CHECK ---
+          // Only update the DOM if the tree actually changed!
+          // This prevents layout thrashing and stops dropdowns from auto-closing.
+          if (treeEl.innerHTML !== treeHtml) {
+              treeEl.innerHTML = treeHtml;
+          }
+      } else {
+          if (treeEl.innerHTML !== `<div class="empty-procs">No pipeline processes found</div>`) {
+              treeEl.innerHTML = `<div class="empty-procs">No pipeline processes found</div>`;
+          }
+      }
+  }
+
+  pushSpark(sparkIn, msg.msgs_in_per_sec);
+  pushSpark(sparkOut, msg.msgs_out_per_sec);
+  drawSpark();
+}
+
+setInterval(() => {
+  document.getElementById("st_total_dl").textContent = formatBytes(totalBytesReceived);
+  document.getElementById("st_uptime").textContent = formatUptime(Date.now() - sessionStartTime);
+}, 1000);
+
+document.getElementById("addInput").addEventListener("keydown", (e) => { if (e.key === "Enter"){ addSymbol(e.target.value); e.target.value = ""; }});
+async function loadSymbols(){ try{ const r = await fetch("/api/symbols"); allSymbols = await r.json(); const dl = document.getElementById("symList"); dl.innerHTML = allSymbols.map(s => `<option value="${s}">`).join(""); renderSidebar(); }catch(e){ document.getElementById("symSidebar").innerHTML = '<div class="sym-sidebar-empty">failed to load symbols</div>'; } }
+renderMetricList();
+document.getElementById("metricList").addEventListener("change", (e) => {
+  const cb = e.target.closest(".ml-cb"); if (!cb) return;
+  const key = cb.dataset.key;
+  if (cb.checked) enabledMetrics.add(key); else enabledMetrics.delete(key);
+  try { localStorage.setItem("enabledMetrics", JSON.stringify([...enabledMetrics])); } catch (_) {}
+  for (const s in panels) scheduleDraw(panels[s]);
+  scheduleDetailDraw();
+});
+document.getElementById("slotMax").textContent = MAX_SYMBOLS; document.getElementById("mainChartBody").style.display = "none"; setViewMode("focus"); loadSymbols(); connectWS();
+</script>
+</body>
+</html>

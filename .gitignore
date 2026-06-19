@@ -1,0 +1,39 @@
+# --- Secrets / credentials ---
+.env
+.env.*
+*.key
+*.pem
+secrets.json
+config.local.json
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+
+# --- Data / Redis dumps ---
+*.rdb
+*.aof
+data/
+dumps/
+*.csv
+*.db
+*.sqlite3
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Editor / tool configs ---
+.vscode/
+.idea/
+.claude/
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
