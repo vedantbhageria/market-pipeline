@@ -2,14 +2,17 @@ import time
 import logging
 import multiprocessing as mp
 from collections import deque, defaultdict
-from Managers.RedisConnectionPool import ConnectionManager
+from shared.redis_pool import ConnectionManager
+from shared.logging_setup import setup_logging
+from shared.redis_streams import parse_ts_ms, last_entry_per_symbol
+from shared.constants import STREAM_MAXLEN
 
 
 class RollingMetricWorker:
 
     def __init__(self, source_stream_fn, output_stream_fn, window_ms, compute_fn,
                  value_field="value", num_workers=4, name="worker",
-                 xread_block_ms=5000, xread_count=1000, output_maxlen=36000,
+                 xread_block_ms=5000, xread_count=1000, output_maxlen=STREAM_MAXLEN,
                  pipeline_flush=4000):
 
         self.source_stream_fn = source_stream_fn
@@ -30,20 +33,17 @@ class RollingMetricWorker:
 
     def resume_cursors(self, r, symbols, worker_id):
         log = logging.getLogger(f"{self.name}-{worker_id}")
-        pipe = r.pipeline()
-        for sym in symbols:
-            pipe.xrevrange(self.output_stream_fn(sym), max="+", min="-", count=1)
-        results = pipe.execute(raise_on_error=False)
+        latest_map = last_entry_per_symbol(r, symbols, self.output_stream_fn)
 
         cursors = {}
         fresh, resumed = 0, 0
-        for sym, latest in zip(symbols, results):
+        for sym, latest in latest_map.items():
             stream = self.source_stream_fn(sym)
             if isinstance(latest, Exception) or not latest:
                 cursors[stream] = "0"
                 fresh += 1
                 continue
-            last_ts = int(latest[0][0].split("-")[0])
+            last_ts = parse_ts_ms(latest[0][0])
             cursors[stream] = f"{max(last_ts - self.window_ms, 0)}-0"
             resumed += 1
 
@@ -51,11 +51,7 @@ class RollingMetricWorker:
         return cursors
 
     def _worker(self, worker_id, symbols):
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
-            datefmt="%H:%M:%S",
-        )
+        setup_logging()
         log = logging.getLogger(f"{self.name}-{worker_id}")
 
         r          = self._connect(worker_id)
@@ -80,7 +76,7 @@ class RollingMetricWorker:
 
                     for entry_id, fields in entries:
                         cursors[stream_name] = entry_id
-                        ts_ms  = int(entry_id.split("-")[0])
+                        ts_ms  = parse_ts_ms(entry_id)
                         price  = float(fields["price"])
                         qty    = float(fields.get("quantity", 0) or 0)
                         appended = (ts_ms, price, qty)

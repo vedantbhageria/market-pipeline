@@ -1,7 +1,7 @@
 import logging
 import time
 from fastapi import WebSocket
-from Services.Dashboard_Server.mappers import (
+from services.dashboard_server.mappers import (
     _tick, _ma, _metric_mapper, OVERLAY_METRICS,
     ticker_stream, ma_stream,
 )

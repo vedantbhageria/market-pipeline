@@ -1,4 +1,4 @@
-from Services.Metrics.RollingMetric import RollingMetricWorker
+from services.metrics.rolling_metric import RollingMetricWorker
 from shared.redis_streams import ticker_stream, vwma_stream
 from shared.constants import METRICS_WINDOW_MS
 

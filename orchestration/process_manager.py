@@ -1,13 +1,30 @@
+import os
 import subprocess
 import threading
 import sys
-from Services.registry import SERVICES
+from orchestration.registry import SERVICES
+from shared.redis_pool import ManageAllConnections
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 class ProcessManager:
 
     def __init__(self):
         self._processes: dict[str, subprocess.Popen] = {}
         self._lock = threading.Lock()
+        self._monitor_thread = threading.Thread(target=ManageAllConnections, daemon=True)
+
+    def _child_env(self):
+        env = os.environ.copy()
+        existing = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = PROJECT_ROOT + (os.pathsep + existing if existing else "")
+        return env
+
+    def start_monitor(self):
+        if not self._monitor_thread.is_alive():
+            self._monitor_thread.start()
+            print("[PM] connection monitor started")
 
     def start(self, name: str):
         with self._lock:
@@ -15,7 +32,8 @@ class ProcessManager:
                 print(f"[PM] {name} already running")
                 return
             flags = subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
-            proc = subprocess.Popen(SERVICES[name], creationflags=flags)
+            proc = subprocess.Popen(SERVICES[name], creationflags=flags,
+                                    cwd=PROJECT_ROOT, env=self._child_env())
             self._processes[name] = proc
             print(f"[PM] started {name} (pid {proc.pid})")
 

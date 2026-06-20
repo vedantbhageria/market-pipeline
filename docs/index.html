@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Pipeline — Documentation</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c232c; --border:#30363d;
+    --fg:#e6edf3; --muted:#9da7b1; --accent:#58a6ff; --accent2:#3fb950;
+    --orange:#d29922; --pink:#db61a2; --purple:#bc8cff; --red:#f85149;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.6;font-size:15px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono);background:var(--panel2);padding:.12em .4em;border-radius:5px;font-size:.86em;color:#e6edf3;border:1px solid var(--border)}
+  pre{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto;font-family:var(--mono);font-size:13px;line-height:1.55}
+  pre code{background:none;border:none;padding:0}
+  h1,h2,h3{line-height:1.25;font-weight:650}
+  h2{margin-top:0;font-size:1.7rem;border-bottom:1px solid var(--border);padding-bottom:.4em}
+  h3{font-size:1.18rem;margin-top:2em;color:#fff}
+  h4{font-size:1rem;margin:1.4em 0 .4em;color:var(--accent)}
+
+  .layout{display:flex;min-height:100vh}
+  /* Sidebar */
+  nav.side{width:268px;flex:0 0 268px;background:var(--panel);border-right:1px solid var(--border);
+    position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 14px}
+  nav.side .brand{font-weight:700;font-size:1.15rem;color:#fff;padding:0 10px 4px}
+  nav.side .brand small{display:block;font-weight:400;color:var(--muted);font-size:.72rem;margin-top:3px;letter-spacing:.02em}
+  nav.side .group{margin-top:18px;font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);padding:0 10px 6px}
+  nav.side a{display:block;color:var(--fg);padding:6px 10px;border-radius:7px;font-size:.9rem}
+  nav.side a:hover{background:var(--panel2);text-decoration:none}
+
+  main{flex:1;min-width:0;padding:42px 52px 120px;max-width:1020px}
+  section{margin-bottom:64px;scroll-margin-top:20px}
+  .lead{color:var(--muted);font-size:1.05rem;max-width:760px}
+
+  .pill{display:inline-block;font-size:.72rem;font-family:var(--mono);padding:.18em .6em;border-radius:20px;
+    border:1px solid var(--border);background:var(--panel2);color:var(--muted);margin:0 4px 4px 0}
+  .pill.proc{color:var(--accent2);border-color:#2a5}
+  .pill.thread{color:var(--orange);border-color:#964}
+  .pill.async{color:var(--purple);border-color:#85b}
+
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:.9rem}
+  th,td{border:1px solid var(--border);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  tr:nth-child(even) td{background:rgba(255,255,255,.012)}
+  td code{white-space:nowrap}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin:16px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}main{padding:28px 20px 80px}nav.side{display:none}}
+
+  .note{border-left:3px solid var(--accent);background:rgba(88,166,255,.07);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0}
+  .warn{border-left:3px solid var(--orange);background:rgba(210,153,34,.08);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0}
+
+  .tree{font-family:var(--mono);font-size:13px;line-height:1.7;white-space:pre;color:var(--fg)}
+  .tree .d{color:var(--accent);font-weight:600}
+  .tree .c{color:var(--muted)}
+
+  .kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;font-size:.92rem}
+  .kv code{justify-self:start}
+
+  hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+  .footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--border);padding-top:18px}
+  .tag{font-family:var(--mono);font-size:.8rem;color:var(--accent2)}
+  .diagram-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin:18px 0}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="side">
+  <div class="brand">Market Pipeline<small>Live crypto data &amp; metrics engine</small></div>
+  <div class="group">Overview</div>
+  <a href="#overview">What it does</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#dataflow">Data flow</a>
+  <div class="group">Reference</div>
+  <a href="#structure">Project structure</a>
+  <a href="#orchestration">Orchestration</a>
+  <a href="#live">Live ingestion</a>
+  <a href="#backfill">Backfill</a>
+  <a href="#metrics">Metric workers</a>
+  <a href="#dashboard">Dashboard server</a>
+  <a href="#connections">Connection registry</a>
+  <a href="#shared">Shared utilities</a>
+  <div class="group">Data &amp; Config</div>
+  <a href="#redis">Redis data model</a>
+  <a href="#config">Configuration</a>
+  <div class="group">Operations</div>
+  <a href="#setup">Setup &amp; running</a>
+</nav>
+
+<main>
+
+<!-- ───────────── OVERVIEW ───────────── -->
+<section id="overview">
+  <h2>Market Pipeline</h2>
+  <p class="lead">A real-time cryptocurrency market-data engine. It ingests live Binance USD-M futures
+  trades over WebSocket, backfills recent history over REST, computes a suite of rolling technical
+  indicators, stores everything in Redis Streams, and serves it to a live web dashboard.</p>
+
+  <div style="margin-top:18px">
+    <span class="pill">Python</span>
+    <span class="pill">Redis Streams</span>
+    <span class="pill">asyncio + threading + multiprocessing</span>
+    <span class="pill">FastAPI / uvicorn</span>
+    <span class="pill">WebSockets</span>
+    <span class="pill">python-binance</span>
+  </div>
+
+  <div class="grid2" style="margin-top:24px">
+    <div class="card">
+      <h4 style="margin-top:0">The idea</h4>
+      <p style="margin:0;color:var(--muted)">One launcher (<code>pipeline.py</code>) spins up four independent
+      services, each in its own console window. They never call each other directly — they communicate
+      only through <strong>Redis Streams</strong> (data) and <strong>Redis Pub/Sub</strong> (signals).</p>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">Why decoupled</h4>
+      <p style="margin:0;color:var(--muted)">Each service can crash, restart, or scale on its own. The metric
+      workers and dashboard simply read whatever is in Redis; producers (live + backfill) simply write.
+      No service holds a reference to another.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── ARCHITECTURE ───────────── -->
+<section id="architecture">
+  <h2>Architecture</h2>
+  <p class="lead">Four services orchestrated by a process manager, all meeting at Redis.</p>
+
+  <div class="diagram-wrap">
+  <svg viewBox="0 0 900 470" width="900" font-family="var(--sans)" role="img" aria-label="Architecture diagram">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L7,3 L0,6 Z" fill="#9da7b1"/>
+      </marker>
+      <style>
+        .box{rx:10;stroke-width:1.5}
+        .lbl{fill:#e6edf3;font-size:13px;font-weight:600}
+        .sub{fill:#9da7b1;font-size:10.5px}
+        .edge{stroke:#9da7b1;stroke-width:1.6;fill:none;marker-end:url(#ar)}
+        .edge-t{fill:#9da7b1;font-size:10px}
+      </style>
+    </defs>
+
+    <!-- external -->
+    <rect x="20" y="40" width="150" height="70" rx="10" fill="#1c232c" stroke="#d29922"/>
+    <text x="95" y="70" text-anchor="middle" class="lbl">Binance</text>
+    <text x="95" y="88" text-anchor="middle" class="sub">WebSocket • REST</text>
+
+    <!-- producers -->
+    <rect x="250" y="20" width="170" height="62" rx="10" fill="#161b22" stroke="#3fb950"/>
+    <text x="335" y="46" text-anchor="middle" class="lbl">Live Ingestion</text>
+    <text x="335" y="64" text-anchor="middle" class="sub">aggTrade WS → ticks</text>
+
+    <rect x="250" y="100" width="170" height="62" rx="10" fill="#161b22" stroke="#3fb950"/>
+    <text x="335" y="126" text-anchor="middle" class="lbl">Backfill</text>
+    <text x="335" y="144" text-anchor="middle" class="sub">REST → 1s bars</text>
+
+    <!-- redis -->
+    <rect x="520" y="55" width="150" height="150" rx="10" fill="#1c232c" stroke="#58a6ff" stroke-width="2"/>
+    <text x="595" y="92" text-anchor="middle" class="lbl" style="font-size:15px">Redis</text>
+    <text x="595" y="116" text-anchor="middle" class="sub">Streams (ticks)</text>
+    <text x="595" y="134" text-anchor="middle" class="sub">Streams (metrics)</text>
+    <text x="595" y="152" text-anchor="middle" class="sub">Pub/Sub (signals)</text>
+    <text x="595" y="170" text-anchor="middle" class="sub">Hash (registry)</text>
+
+    <!-- metrics -->
+    <rect x="250" y="250" width="170" height="62" rx="10" fill="#161b22" stroke="#bc8cff"/>
+    <text x="335" y="276" text-anchor="middle" class="lbl">Metric Workers ×8</text>
+    <text x="335" y="294" text-anchor="middle" class="sub">rolling 30s window</text>
+
+    <!-- dashboard + browser -->
+    <rect x="730" y="55" width="150" height="62" rx="10" fill="#161b22" stroke="#db61a2"/>
+    <text x="805" y="81" text-anchor="middle" class="lbl">Dashboard</text>
+    <text x="805" y="99" text-anchor="middle" class="sub">FastAPI :8000</text>
+
+    <rect x="730" y="150" width="150" height="55" rx="10" fill="#1c232c" stroke="#30363d"/>
+    <text x="805" y="183" text-anchor="middle" class="lbl">Browser</text>
+
+    <!-- edges -->
+    <path class="edge" d="M170,66 L248,55"/>
+    <path class="edge" d="M170,90 L248,128"/>
+    <path class="edge" d="M420,50 L518,90"/>
+    <text x="455" y="58" class="edge-t">xadd ticks</text>
+    <path class="edge" d="M420,130 L518,135"/>
+    <text x="455" y="125" class="edge-t">xadd ticks</text>
+
+    <!-- backfill -> live signal -->
+    <path class="edge" d="M335,100 L335,84"/>
+    <text x="345" y="96" class="edge-t">backfill:complete (pub/sub)</text>
+
+    <path class="edge" d="M520,160 L420,275"/>
+    <text x="430" y="225" class="edge-t">xread ticks</text>
+    <path class="edge" d="M420,265 L520,180"/>
+    <text x="430" y="258" class="edge-t">xadd metrics</text>
+
+    <path class="edge" d="M670,110 L728,95"/>
+    <text x="660" y="92" class="edge-t">xread</text>
+    <path class="edge" d="M805,117 L805,148"/>
+    <text x="812" y="138" class="edge-t">WebSocket</text>
+
+    <!-- orchestrator -->
+    <rect x="20" y="250" width="190" height="62" rx="10" fill="#161b22" stroke="#58a6ff"/>
+    <text x="115" y="276" text-anchor="middle" class="lbl">pipeline.py</text>
+    <text x="115" y="294" text-anchor="middle" class="sub">ProcessManager spawns all</text>
+    <path class="edge" stroke-dasharray="4 3" d="M210,275 L248,281"/>
+    <path class="edge" stroke-dasharray="4 3" d="M115,250 C115,180 180,140 248,130"/>
+    <path class="edge" stroke-dasharray="4 3" d="M115,250 C115,160 180,60 248,52"/>
+  </svg>
+  </div>
+
+  <table>
+    <tr><th>Service</th><th>Concurrency model</th><th>Role</th></tr>
+    <tr><td><strong>Live Ingestion</strong></td><td><span class="pill async">asyncio</span></td><td>Streams live aggregate trades over WebSocket, writes tick stream</td></tr>
+    <tr><td><strong>Backfill</strong></td><td><span class="pill thread">threads</span></td><td>Fetches recent history over REST, aggregates to 1-second bars</td></tr>
+    <tr><td><strong>Metric Workers</strong></td><td><span class="pill thread">threads</span> → <span class="pill proc">processes</span></td><td>8 indicators, each fanned across worker processes</td></tr>
+    <tr><td><strong>Dashboard</strong></td><td><span class="pill async">asyncio</span></td><td>FastAPI + WebSocket server feeding the browser UI</td></tr>
+  </table>
+</section>
+
+<!-- ───────────── DATA FLOW ───────────── -->
+<section id="dataflow">
+  <h2>Data flow</h2>
+
+  <h3>1. Cold start &amp; the backfill handshake</h3>
+  <p>Because live ticks and historical bars both land in the same <code>LiveTicker:{symbol}</code> stream,
+  ordering matters. Live ingestion connects immediately but <strong>buffers</strong> every incoming tick per
+  symbol. Backfill works through history; when a symbol's history is stored, it publishes that symbol on the
+  <code>backfill:complete</code> channel. Live is subscribed — on receiving the signal it flushes that symbol's
+  buffer (in order) and switches to writing ticks directly from then on.</p>
+
+  <div class="card">
+    <div class="tree"><span class="c"># per symbol, inside Live ingestion</span>
+tick arrives ─▶ is backfill done for this symbol?
+                 ├─ no  ─▶ append to in-memory buffer
+                 └─ yes ─▶ first time? flush buffer in order, then
+                            xadd directly to LiveTicker:{symbol}</div>
+  </div>
+
+  <h3>2. Metrics</h3>
+  <p>Each metric worker <code>xread</code>s the tick streams, maintains a rolling time window
+  (<code>METRICS_WINDOW_MS</code> = 30s) as a <code>deque</code> per symbol, runs an <em>incremental</em>
+  compute function as each tick enters/leaves the window, and <code>xadd</code>s the result to that metric's
+  own stream — keyed with the <strong>same entry id</strong> as the source tick so outputs align 1:1 with inputs.</p>
+
+  <h3>3. Serving</h3>
+  <p>The dashboard opens a WebSocket per browser. When a client subscribes to a symbol, the server starts a
+  single <em>tail task</em> for that symbol that reads the tick + all metric streams and fans the data out to
+  every client watching it. History (quick + full-window) is loaded via <code>xrevrange</code> on connect.</p>
+</section>
+
+<!-- ───────────── STRUCTURE ───────────── -->
+<section id="structure">
+  <h2>Project structure</h2>
+  <div class="tree">market-pipeline/
+├── <span class="d">pipeline.py</span>                  <span class="c"># entry point — starts everything</span>
+├── pyproject.toml               <span class="c"># editable-install packaging</span>
+│
+├── <span class="d">orchestration/</span>                <span class="c"># the launch layer</span>
+│   ├── process_manager.py        <span class="c"># spawns / kills service processes</span>
+│   └── registry.py               <span class="c"># name → launch command map</span>
+│
+├── <span class="d">services/</span>
+│   ├── <span class="d">data/</span>                     <span class="c"># producers</span>
+│   │   ├── live_binance.py        <span class="c"># WebSocket live ingestion</span>
+│   │   ├── backfill_binance.py    <span class="c"># REST historical backfill</span>
+│   │   ├── data_aggregation.py    <span class="c"># raw trades → 1-second bars</span>
+│   │   └── request_queue.py       <span class="c"># token-bucket rate limiter</span>
+│   ├── <span class="d">metrics/</span>
+│   │   ├── rolling_metric.py      <span class="c"># reusable rolling-window engine</span>
+│   │   ├── run_all.py             <span class="c"># launches all 8 workers</span>
+│   │   └── <span class="d">workers/</span>              <span class="c"># one compute fn per indicator</span>
+│   │       ├── sma.py  vwma.py  ema.py  bollinger.py
+│   │       └── high.py low.py   momentum.py volume.py
+│   └── <span class="d">dashboard_server/</span>
+│       ├── server.py              <span class="c"># FastAPI app + WebSocket</span>
+│       ├── subscriptions.py       <span class="c"># client ↔ symbol bookkeeping</span>
+│       ├── mappers.py             <span class="c"># stream entry → JSON point</span>
+│       ├── history.py             <span class="c"># history readers</span>
+│       └── stats.py               <span class="c"># system/throughput stats</span>
+│
+├── <span class="d">shared/</span>                       <span class="c"># cross-cutting infra</span>
+│   ├── redis_pool.py             <span class="c"># ConnectionManager + registry monitor</span>
+│   ├── redis_streams.py          <span class="c"># stream-key helpers</span>
+│   ├── symbols.py                <span class="c"># symbol-list loader</span>
+│   ├── constants.py              <span class="c"># all tunables</span>
+│   ├── logging_setup.py          <span class="c"># shared log config</span>
+│   └── crypto_futures.txt        <span class="c"># the universe (~522 symbols)</span>
+│
+├── <span class="d">frontend/</span>
+│   └── dashboard.html            <span class="c"># the single-page UI</span>
+└── <span class="d">scripts/</span>
+    └── flush_redis.py            <span class="c"># dev helper — wipes Redis</span></div>
+
+  <div class="note"><strong>Layering principle.</strong> <code>shared/</code> holds infrastructure used everywhere;
+  feature-specific helpers live next to their feature (the rate limiter sits in <code>data/</code>, the
+  subscription tracker in <code>dashboard_server/</code>); <code>orchestration/</code> owns process launching.</div>
+</section>
+
+<!-- ───────────── ORCHESTRATION ───────────── -->
+<section id="orchestration">
+  <h2>Orchestration</h2>
+  <p><code>pipeline.py</code> is the only thing you run. It creates a <code>ProcessManager</code>, starts the
+  connection-registry monitor, then launches each service.</p>
+
+  <pre><code>pm = ProcessManager()
+pm.start_monitor()          # background thread: maintains the Connections hash
+pm.start("Live Binance")
+pm.start("Backfill")
+pm.start("Server")          # uvicorn on :8000
+time.sleep(2); webbrowser.open("http://localhost:8000")
+pm.start("Metrics")         # run_all.py → 8 workers
+# Ctrl+C → pm.stop_all()</code></pre>
+
+  <h3>ProcessManager</h3>
+  <div class="kv">
+    <code>start(name)</code><span>Looks the launch command up in the registry and spawns it. On Windows each
+      gets a <strong>new console window</strong> (<code>CREATE_NEW_CONSOLE</code>).</span>
+    <code>stop(name)</code><span>Kills the whole process tree — <code>taskkill /F /T</code> on Windows,
+      <code>terminate()</code> elsewhere.</span>
+    <code>stop_all()</code><span>Stops every tracked process (the Ctrl+C path).</span>
+    <code>start_monitor()</code><span>Starts the <code>ManageAllConnections</code> daemon thread.</span>
+  </div>
+  <div class="note">Every child is launched with <code>cwd</code> = project root and the root injected into
+  <code>PYTHONPATH</code>, so <code>import services</code> / <code>import shared</code> resolve regardless of
+  how the child is started or the editable-install state.</div>
+
+  <h3>Service registry</h3>
+  <table>
+    <tr><th>Name</th><th>Launch command</th></tr>
+    <tr><td><code>Live Binance</code></td><td><code>python services/data/live_binance.py</code></td></tr>
+    <tr><td><code>Backfill</code></td><td><code>python services/data/backfill_binance.py</code></td></tr>
+    <tr><td><code>Server</code></td><td><code>python -m uvicorn services.dashboard_server.server:app --port 8000</code></td></tr>
+    <tr><td><code>Metrics</code></td><td><code>python services/metrics/run_all.py</code></td></tr>
+  </table>
+</section>
+
+<!-- ───────────── LIVE ───────────── -->
+<section id="live">
+  <h2>Live ingestion <span class="tag">services/data/live_binance.py</span></h2>
+  <p>Connects to Binance USD-M futures combined streams and consumes <code>aggTrade</code> events.</p>
+
+  <ul>
+    <li>Subscribes to <code>{symbol}@aggTrade</code> for the whole universe, split into shards of
+      <code>LIVE_WS_SHARD_SIZE</code> (190) streams per WebSocket connection.</li>
+    <li>Each shard runs as its own auto-reconnecting <code>asyncio</code> task.</li>
+    <li>A separate task listens on the <code>backfill:complete</code> Pub/Sub channel and sets a per-symbol
+      <code>asyncio.Event</code>.</li>
+    <li><strong>Buffer-then-flush:</strong> ticks are held until that symbol's event fires, then the buffer is
+      flushed in order and subsequent ticks are written directly.</li>
+  </ul>
+
+  <h4>Tick written to <code>LiveTicker:{symbol}</code></h4>
+  <pre><code>id     = "{T}-{a}"            # trade time (ms) + aggregate-trade id
+fields = { price, quantity }
+maxlen = STREAM_MAXLEN (36000, approximate)</code></pre>
+  <div class="note">Using <code>{T}-{a}</code> as the Redis entry id makes ingestion <strong>idempotent</strong>:
+  re-delivering the same trade can't create a duplicate stream entry.</div>
+</section>
+
+<!-- ───────────── BACKFILL ───────────── -->
+<section id="backfill">
+  <h2>Backfill <span class="tag">services/data/backfill_binance.py</span></h2>
+  <p>Fetches recent aggregate-trade history over the REST API and lays it down as 1-second bars so the live
+  stream has immediate context on startup.</p>
+
+  <h3>Resume logic</h3>
+  <p>On start it calls <code>latest_key(...)</code> to find, per symbol, the last stored tick. If that tick is
+  recent (within <code>BACKFILL_LOOKBACK_MS</code>) it resumes from there; otherwise it starts from the default
+  lookback window. This means restarts don't refetch what's already stored.</p>
+
+  <h3>Rate limiting — <code>RequestQueueManager</code></h3>
+  <p>A token-bucket limiter shared across <code>BACKFILL_NUM_WORKERS</code> (6) request queues and worker threads.</p>
+  <div class="kv">
+    <code>capacity</code><span>burst budget (tokens), here 100/sec</span>
+    <code>refill_rate</code><span>tokens added per second = budget_per_min / 60 (2200/min)</span>
+    <code>weight</code><span>each aggregate-trades call costs <code>BACKFILL_AGG_TRADE_WEIGHT</code> = 20</span>
+    <code>report_rate_limit()</code><span>on a Binance <code>-1003</code> / ban, zeroes tokens and pauses all
+      workers until the ban timestamp (parsed from the error) or 15s</span>
+  </div>
+
+  <h3>Aggregation</h3>
+  <p><code>aggregate_to_seconds()</code> buckets raw trades by their second, keeping the last price and summing
+  quantity, producing one bar per second written with id <code>{open_time}-0</code>. After storing a symbol's
+  bars it publishes the symbol on <code>backfill:complete</code>.</p>
+</section>
+
+<!-- ───────────── METRICS ───────────── -->
+<section id="metrics">
+  <h2>Metric workers <span class="tag">services/metrics/</span></h2>
+  <p>All eight indicators share one engine, <code>RollingMetricWorker</code>. A worker is configured with a
+  source stream, an output stream, a window size, and a pure <strong>compute function</strong>.</p>
+
+  <h3>The rolling engine</h3>
+  <ul>
+    <li><strong>Sharded across processes:</strong> each metric fans its symbols across <code>num_workers</code>
+      (4) OS processes via <code>multiprocessing</code>.</li>
+    <li><strong>Per-symbol state:</strong> a <code>deque</code> window of <code>(ts, price, qty)</code>, a running
+      quantity sum, and the previous result.</li>
+    <li><strong>Resume:</strong> <code>resume_cursors()</code> rewinds each cursor to <code>window_ms</code>
+      before the last output already written, so the 30-second window is rebuilt from existing history on restart.</li>
+    <li><strong>Incremental:</strong> on each tick, expired entries are popped and the compute fn receives
+      <code>(window, popped, appended, prev, qty_sum)</code> — letting it update in O(1) instead of rescanning.</li>
+  </ul>
+
+  <h4>compute function contract</h4>
+  <pre><code>def metric(window, popped, appended, prev, qty_sum):
+    # window   : entries currently in the window (excl. the new one)
+    # popped   : entries that just expired this tick
+    # appended : the new (ts, price, qty)
+    # prev     : the previous result for this symbol (or None)
+    # qty_sum  : running sum of quantity over the window
+    return value            # or a dict of fields</code></pre>
+
+  <h3>The eight indicators</h3>
+  <table>
+    <tr><th>Worker</th><th>Output stream</th><th>Idea</th></tr>
+    <tr><td><code>sma</code></td><td><code>MovingAverage:{sym}</code></td><td>Simple moving average of price</td></tr>
+    <tr><td><code>vwma</code></td><td><code>VWMA:{sym}</code></td><td>Volume-weighted moving average</td></tr>
+    <tr><td><code>ema</code></td><td><code>EMA:{sym}</code></td><td>Exponential moving average (α = 0.2)</td></tr>
+    <tr><td><code>bollinger</code></td><td><code>Bollinger:{sym}</code></td><td>Mid / upper / lower bands (±2σ)</td></tr>
+    <tr><td><code>high</code></td><td><code>RollingHigh:{sym}</code></td><td>Rolling max — O(1) amortized</td></tr>
+    <tr><td><code>low</code></td><td><code>RollingLow:{sym}</code></td><td>Rolling min — O(1) amortized</td></tr>
+    <tr><td><code>momentum</code></td><td><code>Momentum:{sym}</code></td><td>% change vs. window start</td></tr>
+    <tr><td><code>volume</code></td><td><code>Volume:{sym}</code></td><td>Total quantity over the window</td></tr>
+  </table>
+  <div class="note"><code>run_all.py</code> imports all eight pre-built workers and runs each in its own thread;
+  inside, every worker spawns its own pool of processes. So one "Metrics" console window hosts the lot.</div>
+</section>
+
+<!-- ───────────── DASHBOARD ───────────── -->
+<section id="dashboard">
+  <h2>Dashboard server <span class="tag">services/dashboard_server/</span></h2>
+  <p>A FastAPI app (served by uvicorn) that streams data to the browser over WebSocket and exposes REST history.</p>
+
+  <h3>WebSocket protocol <code>/ws</code></h3>
+  <p>The browser sends JSON actions; the server pushes typed frames back.</p>
+  <table>
+    <tr><th>Client → server</th><th>Effect</th></tr>
+    <tr><td><code>{action:"subscribe", symbols:[…], window}</code></td><td>Subscribe (max <code>12</code> symbols/client). Sends quick history immediately, then a full-window backfill.</td></tr>
+    <tr><td><code>{action:"set_window", symbol, window}</code></td><td>Change the history window for a symbol (<code>2m / 10m / 30m / 1h</code>).</td></tr>
+    <tr><td><code>{action:"unsubscribe", symbols:[…]}</code></td><td>Stop receiving a symbol.</td></tr>
+  </table>
+
+  <h3>Fan-out — <code>SubscriptionManager</code></h3>
+  <p>Tracks the client↔symbol mapping both ways. The <strong>first</strong> client to watch a symbol starts a
+  single <code>_tail_symbol</code> task; the <strong>last</strong> to leave cancels it. That one task reads the
+  tick stream + every metric overlay for the symbol and broadcasts to all its watchers — so N clients on the
+  same symbol cost one Redis reader, not N.</p>
+
+  <h3>REST endpoints</h3>
+  <table>
+    <tr><th>Endpoint</th><th>Returns</th></tr>
+    <tr><td><code>GET /</code></td><td>The dashboard HTML page</td></tr>
+    <tr><td><code>GET /api/symbols</code></td><td>All symbols that currently have a tick stream</td></tr>
+    <tr><td><code>GET /api/history/{symbol}</code></td><td>Tick history for a window</td></tr>
+    <tr><td><code>GET /api/ma-history/{symbol}</code></td><td>Moving-average history</td></tr>
+    <tr><td><code>GET /api/metric-history/{metric}/{symbol}</code></td><td>History for any overlay metric</td></tr>
+    <tr><td><code>GET /api/ws-stats</code></td><td>Live client count, active symbols, throughput</td></tr>
+  </table>
+  <p>A background <code>stats_loop</code> broadcasts CPU / RAM / Redis-memory / message-rate stats (via
+  <code>psutil</code>) to all clients every <code>2s</code>.</p>
+</section>
+
+<!-- ───────────── CONNECTIONS ───────────── -->
+<section id="connections">
+  <h2>Connection registry <span class="tag">shared/redis_pool.py</span></h2>
+  <p>Every process creates its own <code>ConnectionManager</code>; Redis client objects are <strong>not</strong>
+  shared across processes. The registry exists so you can <em>observe</em> all connections across all processes
+  from one place.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4 style="margin-top:0">Per-process side</h4>
+      <p style="color:var(--muted);margin:0">Each named <code>get_sync</code> / <code>get_async</code> creates a
+      client once, caches it, and <strong>publishes</strong> an add event on the <code>Connections</code> Pub/Sub
+      channel. Construction also registers a <code>{name}-managerial</code> client.</p>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">Monitor side</h4>
+      <p style="color:var(--muted);margin:0"><code>ManageAllConnections()</code> (one daemon thread, started by
+      the ProcessManager) subscribes to that channel and rebuilds a Redis <strong>hash</strong> named
+      <code>Connections</code>: <code>manager → JSON list of [connection, type]</code>.</p>
+    </div>
+  </div>
+  <pre><code>HGETALL Connections
+  "live"      → [["live-managerial","sync"], ["live-async","async"]]
+  "backfill"  → [["backfill-managerial","sync"], ["backfill-sync","sync"]]
+  "dashboard" → [["dashboard-managerial","sync"], ["dashboard-async","async"], …]
+  "Monitor"   → [["RedisConnectionMonitor","sync"]]</code></pre>
+  <div class="warn"><strong>Configurable host/port.</strong> All clients read <code>REDIS_HOST</code> /
+  <code>REDIS_PORT</code> from the environment, defaulting to <code>localhost:6379</code>.</div>
+</section>
+
+<!-- ───────────── SHARED ───────────── -->
+<section id="shared">
+  <h2>Shared utilities <span class="tag">shared/</span></h2>
+  <div class="kv">
+    <code>redis_streams.py</code><span>One key-builder per stream (<code>ticker_stream</code>, <code>ma_stream</code>, …) plus
+      <code>parse_ts_ms()</code>, <code>last_entry_per_symbol()</code> (pipelined latest-entry lookup), and
+      <code>latest_key()</code> (backfill resume positions).</span>
+    <code>symbols.py</code><span><code>load_symbols("crypto_futures")</code> reads the newline-delimited symbol file
+      next to it and upper-cases every entry.</span>
+    <code>constants.py</code><span>Every tunable in one place — see below.</span>
+    <code>logging_setup.py</code><span><code>setup_logging()</code> — the single log format used by all services.</span>
+    <code>redis_pool.py</code><span>The <code>ConnectionManager</code> and registry monitor.</span>
+  </div>
+</section>
+
+<!-- ───────────── REDIS MODEL ───────────── -->
+<section id="redis">
+  <h2>Redis data model</h2>
+
+  <h3>Streams</h3>
+  <table>
+    <tr><th>Key pattern</th><th>Producer</th><th>Fields</th></tr>
+    <tr><td><code>LiveTicker:{SYM}</code></td><td>Live + Backfill</td><td><code>price</code>, <code>quantity</code></td></tr>
+    <tr><td><code>MovingAverage:{SYM}</code></td><td>sma worker</td><td><code>avg_price</code>, <code>window_ticks</code></td></tr>
+    <tr><td><code>VWMA:{SYM}</code></td><td>vwma worker</td><td><code>vwma</code>, <code>window_ticks</code></td></tr>
+    <tr><td><code>EMA:{SYM}</code></td><td>ema worker</td><td><code>ema</code>, <code>window_ticks</code></td></tr>
+    <tr><td><code>Bollinger:{SYM}</code></td><td>bollinger worker</td><td><code>mid</code>, <code>upper</code>, <code>lower</code>, <code>std</code>, <code>window_ticks</code></td></tr>
+    <tr><td><code>RollingHigh:{SYM}</code></td><td>high worker</td><td><code>high</code>, <code>window_ticks</code></td></tr>
+    <tr><td><code>RollingLow:{SYM}</code></td><td>low worker</td><td><code>low</code>, <code>window_ticks</code></td></tr>
+    <tr><td><code>Momentum:{SYM}</code></td><td>momentum worker</td><td><code>pct</code>, <code>window_ticks</code></td></tr>
+    <tr><td><code>Volume:{SYM}</code></td><td>volume worker</td><td><code>volume</code>, <code>window_ticks</code></td></tr>
+  </table>
+
+  <h3>Pub/Sub channels &amp; hash</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Purpose</th></tr>
+    <tr><td><code>backfill:complete</code></td><td>Pub/Sub</td><td>Backfill → Live: "this symbol's history is stored, you may flush"</td></tr>
+    <tr><td><code>Connections</code></td><td>Pub/Sub</td><td>Connection add/del/delall events from every process</td></tr>
+    <tr><td><code>Connections</code></td><td>Hash</td><td>Monitor-maintained snapshot of all live connections</td></tr>
+  </table>
+  <div class="note">Stream entry ids encode the source timestamp (<code>ms-seq</code>), so <code>parse_ts_ms()</code>
+  recovers the time from any id, and metric outputs reuse their source tick's id to stay perfectly aligned.</div>
+</section>
+
+<!-- ───────────── CONFIG ───────────── -->
+<section id="config">
+  <h2>Configuration <span class="tag">shared/constants.py</span></h2>
+  <table>
+    <tr><th>Constant</th><th>Value</th><th>Meaning</th></tr>
+    <tr><td><code>BACKFILL_NUM_WORKERS</code></td><td>6</td><td>Parallel backfill threads / request queues</td></tr>
+    <tr><td><code>BACKFILL_AGG_TRADE_WEIGHT</code></td><td>20</td><td>API weight charged per aggregate-trades call</td></tr>
+    <tr><td><code>BACKFILL_LOOKBACK_MS</code></td><td>1000</td><td>How far back a fresh start backfills</td></tr>
+    <tr><td><code>LIVE_WS_SHARD_SIZE</code></td><td>190</td><td>Max streams per WebSocket connection</td></tr>
+    <tr><td><code>METRICS_WINDOW_MS</code></td><td>30000</td><td>Rolling window for every metric (30s)</td></tr>
+    <tr><td><code>STREAM_MAXLEN</code></td><td>36000</td><td>Max entries retained per stream (approx)</td></tr>
+  </table>
+  <p>Runtime overrides via environment: <code>REDIS_HOST</code>, <code>REDIS_PORT</code>.</p>
+</section>
+
+<!-- ───────────── SETUP ───────────── -->
+<section id="setup">
+  <h2>Setup &amp; running</h2>
+
+  <h3>Prerequisites</h3>
+  <ul>
+    <li>Python 3.10+</li>
+    <li>A running Redis server (default <code>localhost:6379</code>)</li>
+    <li>Dependencies: <code>redis</code>, <code>websockets</code>, <code>python-binance</code>,
+      <code>fastapi</code>, <code>uvicorn</code>, <code>numpy</code>, <code>psutil</code></li>
+  </ul>
+
+  <h3>Install</h3>
+  <pre><code># from the project root — registers the packages for clean imports
+pip install -e .</code></pre>
+
+  <h3>Run the whole pipeline</h3>
+  <pre><code>python pipeline.py</code></pre>
+  <p>This opens separate console windows for Live, Backfill, Server and Metrics, then opens the dashboard at
+  <a href="http://localhost:8000">http://localhost:8000</a>. Press <strong>Ctrl+C</strong> in the launcher to stop everything.</p>
+
+  <h3>Run a single service</h3>
+  <pre><code>python services/data/live_binance.py
+python services/data/backfill_binance.py
+python services/metrics/run_all.py
+python -m uvicorn services.dashboard_server.server:app --port 8000</code></pre>
+
+  <h3>Reset Redis</h3>
+  <pre><code>python scripts/flush_redis.py     # flushes ALL keys — dev only</code></pre>
+
+  <div class="warn"><strong>Heads-up.</strong> <code>flush_redis.py</code> calls <code>FLUSHALL</code> — it wipes the
+  entire Redis instance, not just this project's keys. Don't run it against a shared Redis.</div>
+</section>
+
+<div class="footer">
+  Market Pipeline — generated project documentation. Single-file, offline-friendly.
+  Open <code>docs/index.html</code> in any browser.
+</div>
+
+</main>
+</div>
+</body>
+</html>

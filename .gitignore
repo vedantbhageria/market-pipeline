@@ -19,8 +19,8 @@ env/
 # --- Data / Redis dumps ---
 *.rdb
 *.aof
-data/
-dumps/
+/data/
+/dumps/
 *.csv
 *.db
 *.sqlite3

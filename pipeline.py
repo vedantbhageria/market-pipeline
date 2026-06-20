@@ -1,8 +1,9 @@
 import time
 import webbrowser
-from Managers.ProcessManager import ProcessManager
+from orchestration.process_manager import ProcessManager
 
 pm = ProcessManager()
+pm.start_monitor()
 
 pm.start("Live Binance")
 pm.start("Backfill")

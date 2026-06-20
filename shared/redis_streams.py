@@ -34,18 +34,25 @@ def volume_stream(sym):
     return f"Volume:{sym}"
 
 
-def latest_key(r, symbols, default_start_ms, now_ms, max_lookback, stream_key_fn):
+def parse_ts_ms(entry_id):
+    return int(entry_id.split("-")[0])
+
+
+def last_entry_per_symbol(r, symbols, stream_key_fn):
+    """Pipelined xrevrange count=1 over all symbols. Returns {sym: latest_entry_or_exception}."""
     pipe = r.pipeline()
     for sym in symbols:
         pipe.xrevrange(stream_key_fn(sym), max="+", min="-", count=1)
-    results = pipe.execute(raise_on_error=False)
+    return dict(zip(symbols, pipe.execute(raise_on_error=False)))
 
+
+def latest_key(r, symbols, default_start_ms, now_ms, max_lookback, stream_key_fn):
     start_times = {}
-    for sym, latest in zip(symbols, results):
+    for sym, latest in last_entry_per_symbol(r, symbols, stream_key_fn).items():
         if isinstance(latest, Exception) or not latest:
             start_times[sym] = default_start_ms
             continue
-        latest_ts = int(latest[0][0].split("-")[0])
+        latest_ts = parse_ts_ms(latest[0][0])
         if now_ms - latest_ts > max_lookback:
             start_times[sym] = default_start_ms
         else:

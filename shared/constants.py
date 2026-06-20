@@ -8,3 +8,6 @@ LIVE_WS_SHARD_SIZE = 190   # max streams per websocket connection
 
 # Metrics
 METRICS_WINDOW_MS = 30000  # rolling window size for all metric workers (ms)
+
+# Redis streams
+STREAM_MAXLEN = 36000  # max entries kept per stream (ticks / metric outputs)

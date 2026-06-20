@@ -7,13 +7,14 @@ import logging
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from Managers.RedisConnectionPool import ConnectionManager
-from Managers.SubscriptionManager import SubscriptionManager
-from Services.Dashboard_Server.mappers import (
+from shared.redis_pool import ConnectionManager
+from services.dashboard_server.subscriptions import SubscriptionManager
+from services.dashboard_server.mappers import (
     _tick, _ma, _metric_mapper, OVERLAY_METRICS, ticker_stream, ma_stream,
 )
-from Services.Dashboard_Server.history import _read_quick_history, _read_window_history, load_full_window
-from Services.Dashboard_Server.stats import Stats, stats_loop
+from services.dashboard_server.history import _read_quick_history, _read_window_history, load_full_window
+from services.dashboard_server.stats import Stats, stats_loop
+from shared.logging_setup import setup_logging
 
 log = logging.getLogger("dashboard")
 
@@ -38,7 +39,7 @@ HISTORY_WINDOWS_MS = {
 }
 DEFAULT_WINDOW = "10m"
 
-HTML_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Frontend", "dashboard.html")
+HTML_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dashboard.html")
 
 # ── App ────────────────────────────────────────────────────────────────────
 app   = FastAPI()
@@ -120,11 +121,7 @@ def _keep_awake():
 
 @app.on_event("startup")
 async def _startup():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
-        datefmt="%H:%M:%S",
-    )
+    setup_logging()
     _keep_awake()
     asyncio.create_task(stats_loop(r, stats, manager, _send, STATS_INTERVAL))
 

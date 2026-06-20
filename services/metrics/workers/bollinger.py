@@ -1,5 +1,5 @@
 import math
-from Services.Metrics.RollingMetric import RollingMetricWorker
+from services.metrics.rolling_metric import RollingMetricWorker
 from shared.redis_streams import ticker_stream, bollinger_stream
 from shared.constants import METRICS_WINDOW_MS
 
